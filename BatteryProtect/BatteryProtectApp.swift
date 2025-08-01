@@ -39,7 +39,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         
         if let button = statusItem?.button {
             button.title = "🔋"
-            button.toolTip = "BatteryProtect"
+            button.toolTip = "Battery Protect"
         }
         
         // Create menu

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AppKit
 
 @main
 struct BatteryProtectApp: App {
@@ -18,6 +19,9 @@ struct BatteryProtectApp: App {
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
         .defaultSize(width: 350, height: 250)
+        .commands {
+            CommandGroup(replacing: .windowSize) { }
+        }
         
         Settings {
             EmptyView()
@@ -49,6 +53,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         // Start battery monitoring
         batteryMonitor = BatteryMonitor()
         batteryMonitor?.startMonitoring()
+        
+        // Disable maximize (zoom) and resizing
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            if let window = NSApplication.shared.windows.first {
+                window.styleMask.remove([.resizable, .fullScreen, .fullSizeContentView])
+                window.standardWindowButton(.zoomButton)?.isEnabled = false
+            }
+        }
     }
     
     @objc private func showWindow() {

@@ -38,10 +38,6 @@ struct ContentView: View {
                 Text("Last Update: \(lastUpdateTime.formatted(date: .omitted, time: .shortened))")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
-                Text("Running in background with notifications")
-                    .font(.caption)
-                    .foregroundColor(.blue)
             }
             .padding()
             .background(Color.gray.opacity(0.1))

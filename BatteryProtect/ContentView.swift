@@ -30,10 +30,18 @@ struct ContentView: View {
         VStack(spacing: 16) {
             // App Title
             HStack(spacing: 8) {
-                Image(systemName: chargingStatus == "Charging" ? "bolt.circle.fill" : "battery.100.circle.fill")
-                    .font(.system(size: 24))
-                    .foregroundStyle(powerColor)
-                    .symbolEffect(.bounce, options: .repeating, value: chargingStatus == "Charging")
+                Group {
+                    if chargingStatus == "Charging" {
+                        Image(systemName: "bolt.circle.fill")
+                            .font(.system(size: 24))
+                            .foregroundStyle(powerColor)
+                            .symbolEffect(.bounce, options: .repeating)
+                    } else {
+                        Image(systemName: "battery.100.circle.fill")
+                            .font(.system(size: 24))
+                            .foregroundStyle(powerColor)
+                    }
+                }
                 
                 Text("Battery")
                     .font(.system(size: 22, weight: .medium))

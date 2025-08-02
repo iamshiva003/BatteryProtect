@@ -16,39 +16,48 @@ struct ContentView: View {
     @State private var uiTimer: Timer?
     
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Battery Protect")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-            
-            VStack(spacing: 10) {
-                Text("Battery Level: \(Int(batteryLevel * 100))%")
-                    .font(.title2)
+        VStack(spacing: 24) {
+            // Battery Level Circle
+            ZStack {
+                Circle()
+                    .stroke(Color.gray.opacity(0.2), lineWidth: 8)
+                    .frame(width: 120, height: 120)
                 
-                Text("Power Source: \(powerSource)")
-                    .font(.title3)
-                    .foregroundColor(
-                        powerSource == "Power Adapter" ? .green : .orange
+                Circle()
+                    .trim(from: 0, to: CGFloat(batteryLevel))
+                    .stroke(
+                        powerSource == "Power Adapter" ? Color.green : Color.orange,
+                        style: StrokeStyle(lineWidth: 8, lineCap: .round)
                     )
+                    .frame(width: 120, height: 120)
+                    .rotationEffect(.degrees(-90))
                 
-                Text("Status: \(chargingStatus)")
-                    .font(.caption)
-                    .foregroundColor(
-                        powerSource == "Power Adapter" ? .green : .orange
-                    )
-                
-                // Status info
-                Text("Last Update: \(lastUpdateTime.formatted(date: .omitted, time: .shortened))")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                VStack(spacing: 4) {
+                    Text("\(Int(batteryLevel * 100))%")
+                        .font(.system(size: 28, weight: .medium))
+                    Text(chargingStatus)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
-            .padding()
-            .background(Color.gray.opacity(0.1))
-            .cornerRadius(10)
+            .padding(.top, 8)
             
-            Text("Check menu bar for quick access")
-                .font(.caption)
+            // Power Source Badge
+            Text(powerSource)
+                .font(.subheadline)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule()
+                        .fill(Color.gray.opacity(0.1))
+                )
+                .foregroundColor(powerSource == "Power Adapter" ? .green : .primary)
+            
+            // Last Update
+            Text(lastUpdateTime.formatted(date: .omitted, time: .shortened))
+                .font(.caption2)
                 .foregroundColor(.secondary)
+                .padding(.top, -8)
         }
         .padding()
         .frame(minWidth: 300, minHeight: 220)

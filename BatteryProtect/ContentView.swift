@@ -22,8 +22,45 @@ struct ContentView: View {
     
     @Environment(\.colorScheme) private var colorScheme
     
+    private func getBatteryIcon() -> String {
+        if batteryLevel <= 0.05 {
+            return "battery.0.circle.fill"
+        } else if batteryLevel <= 0.25 {
+            return "battery.25.circle.fill"
+        } else if batteryLevel <= 0.50 {
+            return "battery.50.circle.fill"
+        } else if batteryLevel <= 0.75 {
+            return "battery.75.circle.fill"
+        } else {
+            return "battery.100.circle.fill"
+        }
+    }
+    
+    private func getBatteryColor() -> Color {
+        if batteryLevel <= 0.15 {
+            return .red
+        } else if batteryLevel <= 0.25 {
+            return .orange
+        } else if powerSource == "Power Adapter" {
+            return .green
+        } else {
+            return .orange
+        }
+    }
+    
     private var backgroundColor: Color {
         colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.03)
+    }
+    
+    private var backgroundGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                powerColor.opacity(colorScheme == .dark ? 0.1 : 0.05),
+                backgroundColor
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
     
     var body: some View {
@@ -37,9 +74,9 @@ struct ContentView: View {
                             .foregroundStyle(powerColor)
                             .symbolEffect(.bounce, options: .repeating)
                     } else {
-                        Image(systemName: "battery.100.circle.fill")
+                        Image(systemName: getBatteryIcon())
                             .font(.system(size: 24))
-                            .foregroundStyle(powerColor)
+                            .foregroundStyle(getBatteryColor())
                     }
                 }
                 
@@ -54,7 +91,7 @@ struct ContentView: View {
             .padding(.horizontal, 16)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(backgroundColor)
+                    .fill(backgroundGradient)
             )
             
             // Battery Level Circle

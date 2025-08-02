@@ -14,50 +14,76 @@ struct ContentView: View {
     @State private var chargingStatus: String = "Unknown"
     @State private var lastUpdateTime: Date = Date()
     @State private var uiTimer: Timer?
+    @State private var isAnimating: Bool = false
+    
+    private var powerColor: Color {
+        powerSource == "Power Adapter" ? .green : .orange
+    }
     
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 20) {
             // Battery Level Circle
             ZStack {
+                // Background Circle
                 Circle()
-                    .stroke(Color.gray.opacity(0.2), lineWidth: 8)
-                    .frame(width: 120, height: 120)
+                    .stroke(Color.gray.opacity(0.1), lineWidth: 12)
+                    .frame(width: 140, height: 140)
                 
+                // Progress Circle
                 Circle()
                     .trim(from: 0, to: CGFloat(batteryLevel))
                     .stroke(
-                        powerSource == "Power Adapter" ? Color.green : Color.orange,
-                        style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                        powerColor,
+                        style: StrokeStyle(lineWidth: 12, lineCap: .round)
                     )
-                    .frame(width: 120, height: 120)
+                    .frame(width: 140, height: 140)
                     .rotationEffect(.degrees(-90))
+                    .animation(.spring(dampingFraction: 0.7), value: batteryLevel)
                 
-                VStack(spacing: 4) {
+                // Charging Animation
+                if powerSource == "Power Adapter" && chargingStatus == "Charging" {
+                    Circle()
+                        .trim(from: 0, to: 0.3)
+                        .stroke(powerColor.opacity(0.3), lineWidth: 12)
+                        .frame(width: 140, height: 140)
+                        .rotationEffect(.degrees(isAnimating ? 360 : 0))
+                        .animation(
+                            .linear(duration: 1.5)
+                            .repeatForever(autoreverses: false),
+                            value: isAnimating
+                        )
+                }
+                
+                // Battery Level Text
+                VStack(spacing: 2) {
                     Text("\(Int(batteryLevel * 100))%")
-                        .font(.system(size: 28, weight: .medium))
+                        .font(.system(size: 32, weight: .medium))
+                        .foregroundColor(powerColor)
+                        .animation(.spring(), value: batteryLevel)
+                    
                     Text(chargingStatus)
                         .font(.caption)
                         .foregroundColor(.secondary)
+                        .animation(.easeInOut, value: chargingStatus)
                 }
             }
-            .padding(.top, 8)
             
-            // Power Source Badge
+            // Power Source Pill
             Text(powerSource)
-                .font(.subheadline)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
+                .font(.caption)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
                 .background(
                     Capsule()
-                        .fill(Color.gray.opacity(0.1))
+                        .fill(powerColor.opacity(0.1))
                 )
-                .foregroundColor(powerSource == "Power Adapter" ? .green : .primary)
+                .foregroundColor(powerColor)
+                .animation(.easeInOut, value: powerSource)
             
-            // Last Update
+            // Last Update (minimal)
             Text(lastUpdateTime.formatted(date: .omitted, time: .shortened))
                 .font(.caption2)
-                .foregroundColor(.secondary)
-                .padding(.top, -8)
+                .foregroundColor(.secondary.opacity(0.7))
         }
         .padding()
         .frame(minWidth: 300, minHeight: 220)
@@ -70,6 +96,11 @@ struct ContentView: View {
     }
     
     private func startUIUpdates() {
+        // Start charging animation if needed
+        withAnimation {
+            isAnimating = true
+        }
+        
         // Update UI immediately
         updateUI()
         
@@ -80,6 +111,9 @@ struct ContentView: View {
     }
     
     private func stopUIUpdates() {
+        withAnimation {
+            isAnimating = false
+        }
         uiTimer?.invalidate()
         uiTimer = nil
     }

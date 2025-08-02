@@ -20,13 +20,40 @@ struct ContentView: View {
         powerSource == "Power Adapter" ? .green : .orange
     }
     
+    @Environment(\.colorScheme) private var colorScheme
+    
+    private var backgroundColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.03)
+    }
+    
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 16) {
+            // App Title
+            HStack(spacing: 8) {
+                Image(systemName: chargingStatus == "Charging" ? "bolt.circle.fill" : "battery.100.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundStyle(powerColor)
+                    .symbolEffect(.bounce, options: .repeating, value: chargingStatus == "Charging")
+                
+                Text("Battery")
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundColor(colorScheme == .dark ? .white.opacity(0.9) : .black.opacity(0.8))
+                + Text("Protect")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundColor(powerColor)
+            }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(backgroundColor)
+            )
+            
             // Battery Level Circle
             ZStack {
                 // Background Circle
                 Circle()
-                    .stroke(Color.gray.opacity(0.1), lineWidth: 12)
+                    .stroke(backgroundColor, lineWidth: 12)
                     .frame(width: 140, height: 140)
                 
                 // Progress Circle
@@ -63,7 +90,7 @@ struct ContentView: View {
                     
                     Text(chargingStatus)
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .black.opacity(0.6))
                         .animation(.easeInOut, value: chargingStatus)
                 }
             }
@@ -75,7 +102,7 @@ struct ContentView: View {
                 .padding(.vertical, 4)
                 .background(
                     Capsule()
-                        .fill(powerColor.opacity(0.1))
+                        .fill(powerColor.opacity(colorScheme == .dark ? 0.15 : 0.1))
                 )
                 .foregroundColor(powerColor)
                 .animation(.easeInOut, value: powerSource)
@@ -83,10 +110,10 @@ struct ContentView: View {
             // Last Update (minimal)
             Text(lastUpdateTime.formatted(date: .omitted, time: .shortened))
                 .font(.caption2)
-                .foregroundColor(.secondary.opacity(0.7))
+                .foregroundColor(colorScheme == .dark ? .white.opacity(0.5) : .black.opacity(0.4))
         }
         .padding()
-        .frame(minWidth: 300, minHeight: 220)
+        .frame(minWidth: 300, minHeight: 260)
         .onAppear {
             startUIUpdates()
         }

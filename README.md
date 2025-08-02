@@ -1,10 +1,10 @@
 # 🔋 BatteryProtect
 
-A smart macOS battery monitoring app that protects your battery health by providing real-time alerts and notifications when battery conditions are met.
+A lightweight macOS menu bar app that helps protect your MacBook's battery health by monitoring battery levels and providing timely notifications.
 
-![BatteryProtect](https://img.shields.io/badge/macOS-10.15+-blue.svg)
-![Swift](https://img.shields.io/badge/Swift-5.0+-orange.svg)
-![Xcode](https://img.shields.io/badge/Xcode-14.0+-green.svg)
+![macOS](https://img.shields.io/badge/macOS-13.0+-blue.svg)
+![Swift](https://img.shields.io/badge/Swift-5.9+-orange.svg)
+![SwiftUI](https://img.shields.io/badge/SwiftUI-4.0+-purple.svg)
 
 ## ✨ Features
 
@@ -29,27 +29,28 @@ A smart macOS battery monitoring app that protects your battery health by provid
 ## 🚀 Installation
 
 ### Prerequisites
-- macOS 10.15 (Catalina) or later
-- Xcode 14.0 or later
-- Swift 5.0+
+- macOS 13.0 (Ventura) or later
+- Xcode 15.0 or later
+- Swift 5.9+
 
 ### Building from Source
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/BatteryProtect.git
+   git clone https://github.com/iamshiva003/BatteryProtect.git
    cd BatteryProtect
    ```
 
 2. **Open in Xcode**
+   - Double click `BatteryProtect.xcodeproj`, or
    ```bash
    open BatteryProtect.xcodeproj
    ```
 
 3. **Build and Run**
-   - Select your target device (Mac)
+   - Select "BatteryProtect" scheme and your Mac as the target
    - Press `Cmd + R` or click the Run button
-   - The app will launch and appear in your menu bar
+   - Look for the battery icon (🔋) in your menu bar
 
 ### First Run
 - The app will request permission to show notifications
@@ -95,10 +96,10 @@ The app uses these default thresholds:
 - **Background Processing**: Continuous monitoring without UI
 
 ### Key Components
-- `ContentView.swift`: Main UI interface
-- `BatteryProtectApp.swift`: App delegate and menu bar setup
-- `BatteryMonitor`: Background monitoring logic
-- `Info.plist`: App configuration and permissions
+- `ContentView.swift`: Main UI interface with battery status display
+- `BatteryProtectApp.swift`: App entry point and window configuration
+- `BatteryMonitor.swift`: Battery monitoring and notification logic
+- `MenuBarController.swift`: Menu bar icon and menu management
 
 ### Permissions
 - **Notification Access**: Required for system alerts
@@ -181,14 +182,11 @@ The app logs battery information to the console:
 ### Development Setup
 ```bash
 # Clone and setup
-git clone https://github.com/yourusername/BatteryProtect.git
+git clone https://github.com/iamshiva003/BatteryProtect.git
 cd BatteryProtect
 
-# Open in Xcode
+# Open in Xcode and build
 open BatteryProtect.xcodeproj
-
-# Build and test
-xcodebuild -project BatteryProtect.xcodeproj -scheme BatteryProtect -configuration Debug build
 ```
 
 ## 📄 License
@@ -203,12 +201,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/BatteryProtect/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/BatteryProtect/discussions)
-- **Email**: your.email@example.com
+- **Issues**: [GitHub Issues](https://github.com/iamshiva003/BatteryProtect/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/iamshiva003/BatteryProtect/discussions)
 
 ---
 
-**Made with ❤️ for macOS users who care about battery health**
+**Made with ❤️ by Shivakumar Patil**
 
-⭐ **Star this repository if you find it useful!** 
+⭐ **If you find this app useful, please star the repository!** 

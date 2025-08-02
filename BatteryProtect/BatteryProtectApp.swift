@@ -145,7 +145,6 @@ class BatteryMonitor: ObservableObject {
         if shouldShowAlert {
             showNotification(title: title, message: message)
             lastAlertTime = now
-            print("🔔 Alert triggered: \(message)")
         }
         
         // Update last battery state
@@ -166,7 +165,6 @@ class BatteryMonitor: ObservableObject {
         let sources: NSArray = IOPSCopyPowerSourcesList(snapshot).takeRetainedValue()
         
         guard let source = sources.firstObject else {
-            print("⚠️ No power source found")
             return (1.0, "Unknown", "Unknown")
         }
         
@@ -200,7 +198,6 @@ class BatteryMonitor: ObservableObject {
             chargingStatus = "Discharging"
         }
         
-        print("🔋 Battery: \(Int(batteryLevel * 100))%, Power: \(powerSourceString), Status: \(chargingStatus)")
         return (batteryLevel, powerSourceString, chargingStatus)
     }
     

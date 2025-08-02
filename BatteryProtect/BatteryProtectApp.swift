@@ -73,6 +73,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 }
 
 class BatteryMonitor: ObservableObject {
+    @Published var batteryLevel: Float = 1.0
+    @Published var powerSource: String = "Unknown"
+    @Published var chargingStatus: String = "Unknown"
+    @Published var lastUpdateTime: Date = Date()
+
     private var timer: Timer?
     private var lastAlertTime: Date = Date.distantPast
     private var lastBatteryState: (level: Float, pluggedIn: Bool) = (1.0, false)
@@ -93,8 +98,10 @@ class BatteryMonitor: ObservableObject {
     }
     
     private func updateBatteryStatus() {
-        let (level, pluggedIn) = getBatteryInfo()
+        let (level, powerSource, chargingStatus) = getBatteryInfo()
+        let pluggedIn = (powerSource == "Power Adapter")
         checkBatteryAlerts(level: level, pluggedIn: pluggedIn)
+        // Optionally update published properties here if needed
     }
     
     private func checkBatteryAlerts(level: Float, pluggedIn: Bool) {
@@ -154,13 +161,13 @@ class BatteryMonitor: ObservableObject {
         NSUserNotificationCenter.default.deliver(notification)
     }
     
-    private func getBatteryInfo() -> (level: Float, pluggedIn: Bool) {
+    private func getBatteryInfo() -> (level: Float, powerSource: String, chargingStatus: String) {
         let snapshot = IOPSCopyPowerSourcesInfo().takeRetainedValue()
         let sources: NSArray = IOPSCopyPowerSourcesList(snapshot).takeRetainedValue()
         
         guard let source = sources.firstObject else {
             print("⚠️ No power source found")
-            return (1.0, true)
+            return (1.0, "Unknown", "Unknown")
         }
         
         let description = IOPSGetPowerSourceDescription(snapshot, source as CFTypeRef).takeUnretainedValue() as? [String: Any]
@@ -176,6 +183,7 @@ class BatteryMonitor: ObservableObject {
         // Get power source state (matches native macOS indicator)
         let powerSourceState = description?[kIOPSPowerSourceStateKey as String] as? String ?? "Unknown"
         let isPluggedIn = (powerSourceState == kIOPSACPowerValue)
+        let powerSourceString = isPluggedIn ? "Power Adapter" : "Battery"
         
         // Get charging status for logging
         let isCharging = description?["IsCharging"] as? Bool ?? false
@@ -192,7 +200,17 @@ class BatteryMonitor: ObservableObject {
             chargingStatus = "Discharging"
         }
         
-        print("🔋 Battery: \(Int(batteryLevel * 100))%, Power: \(powerSourceState), Status: \(chargingStatus)")
-        return (batteryLevel, isPluggedIn)
+        print("🔋 Battery: \(Int(batteryLevel * 100))%, Power: \(powerSourceString), Status: \(chargingStatus)")
+        return (batteryLevel, powerSourceString, chargingStatus)
+    }
+    
+    private func updateUI() {
+        let (level, powerSource, chargingStatus) = getBatteryInfo()
+        DispatchQueue.main.async {
+            self.batteryLevel = level
+            self.powerSource = powerSource
+            self.chargingStatus = chargingStatus
+            self.lastUpdateTime = Date()
+        }
     }
 }

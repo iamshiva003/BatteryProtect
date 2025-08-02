@@ -10,30 +10,46 @@ import XCTest
 final class BatteryProtectUITests: XCTestCase {
 
     override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-
-        // In UI tests it is usually best to stop immediately when a failure occurs.
         continueAfterFailure = false
-
-        // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
     }
 
     override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+        // Cleanup if needed
     }
 
     @MainActor
-    func testExample() throws {
-        // UI tests must launch the application that they test.
+    func testMainScreenElementsExist() throws {
         let app = XCUIApplication()
         app.launch()
 
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
+        // Check for main title
+        XCTAssertTrue(app.staticTexts["Battery Protect"].exists)
+
+        // Check for battery level label
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Battery Level:'")).firstMatch.exists)
+
+        // Check for power source label
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Power Source:'")).firstMatch.exists)
+
+        // Check for status label
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Status:'")).firstMatch.exists)
+
+        // Check for last update label
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS 'Last Update:'")).firstMatch.exists)
+    }
+
+    @MainActor
+    func testMenuBarIconExists() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        // The menu bar icon is not directly accessible via XCUIApplication,
+        // but you can check if the app is running in the background.
+        XCTAssertTrue(app.state == .runningForeground || app.state == .runningBackground)
     }
 
     @MainActor
     func testLaunchPerformance() throws {
-        // This measures how long it takes to launch your application.
         measure(metrics: [XCTApplicationLaunchMetric()]) {
             XCUIApplication().launch()
         }

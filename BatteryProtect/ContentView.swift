@@ -17,7 +17,7 @@ struct ContentView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            Text("BatteryProtect")
+            Text("Battery Protect")
                 .font(.largeTitle)
                 .fontWeight(.bold)
             
@@ -27,12 +27,15 @@ struct ContentView: View {
                 
                 Text("Power Source: \(powerSource)")
                     .font(.title3)
-                    .foregroundColor(powerSource.contains("AC") ? .green : .orange)
+                    .foregroundColor(
+                        powerSource == "Power Adapter" ? .green : .orange
+                    )
                 
                 Text("Status: \(chargingStatus)")
                     .font(.caption)
-                    .foregroundColor(chargingStatus == "Charging" ? .green : 
-                                   chargingStatus == "Charged" ? .blue : .orange)
+                    .foregroundColor(
+                        powerSource == "Power Adapter" ? .green : .orange
+                    )
                 
                 // Status info
                 Text("Last Update: \(lastUpdateTime.formatted(date: .omitted, time: .shortened))")
@@ -105,11 +108,11 @@ struct ContentView: View {
         let powerSourceState = description?[kIOPSPowerSourceStateKey as String] as? String ?? "Unknown"
         
         // Get charging status
-        let isCharging = description?["IsCharging"] as? Bool ?? false
-        let isCharged = description?["IsCharged"] as? Bool ?? false
+        let isCharging = description?[kIOPSIsChargingKey as String] as? Bool ?? false
+        let isCharged = description?[kIOPSIsChargedKey as String] as? Bool ?? false
         let isPresent = description?["IsPresent"] as? Bool ?? true
         
-        // Determine charging status string
+        // Determine charging status string to match system
         let chargingStatus: String
         if !isPresent {
             chargingStatus = "No Battery"
@@ -119,8 +122,10 @@ struct ContentView: View {
             chargingStatus = "Charging"
         } else if powerSourceState == kIOPSACPowerValue {
             chargingStatus = "Not Charging"
-        } else {
+        } else if powerSourceState == kIOPSBatteryPowerValue {
             chargingStatus = "Discharging"
+        } else {
+            chargingStatus = "Unknown"
         }
         
         // Format power source to match native macOS

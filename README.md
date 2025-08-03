@@ -9,6 +9,7 @@ A macOS status bar application that monitors battery health and provides intelli
 - **Battery Health Tracking**: Displays battery health percentage and status
 - **Status Bar Integration**: Clean status bar icon that changes based on battery state
 - **Modern UI**: Beautiful, animated interface with dark/light mode support
+- **Quick Settings Access**: One-click access to system battery settings
 
 ## Architecture
 
@@ -26,7 +27,8 @@ BatteryProtect/
 ├── Views/
 │   ├── BatteryCircleView.swift    # Battery level circle component
 │   ├── StatusPillsView.swift      # Status pills component
-│   └── TitleView.swift            # App title component
+│   ├── TitleView.swift            # App title component
+│   └── SettingsButtonView.swift   # Settings button component
 ├── Utils/
 │   └── ColorExtensions.swift      # Theme-aware color utilities
 ├── ContentView.swift              # Main UI composition
@@ -48,6 +50,7 @@ BatteryProtect/
 - **BatteryCircleView**: Animated circular battery level indicator
 - **StatusPillsView**: Power source and health status pills
 - **TitleView**: App title with dynamic icon and animations
+- **SettingsButtonView**: Quick access to system battery settings
 
 #### Utils
 - **ColorExtensions**: Theme-aware color utilities for consistent UI
@@ -66,6 +69,7 @@ BatteryProtect/
 - **Theme Support**: Automatic dark/light mode adaptation
 - **Animations**: Smooth transitions and state-based animations
 - **Accessibility**: Proper tooltips and hover states
+- **Settings Integration**: Direct access to system battery preferences
 
 ## Benefits of Modular Architecture
 

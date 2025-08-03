@@ -35,9 +35,7 @@ struct ContentView: View {
                     .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.3), value: isAppearing)
                 
                 // Last Update
-                Text(batteryMonitor.batteryInfo.lastUpdateTime.formatted(date: .omitted, time: .shortened))
-                    .font(.caption2)
-                    .foregroundColor(Color.subtleTextColor(for: colorScheme))
+                LastUpdateView(batteryInfo: batteryMonitor.batteryInfo, colorScheme: colorScheme)
                     .offset(y: isAppearing ? 0 : 20)
                     .opacity(isAppearing ? 1 : 0)
                     .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.4), value: isAppearing)
@@ -76,6 +74,18 @@ struct ContentView: View {
         .onDisappear {
             batteryMonitor.stopMonitoring()
         }
+    }
+}
+
+// MARK: - Optimized Last Update View
+struct LastUpdateView: View {
+    let batteryInfo: BatteryInfo
+    let colorScheme: ColorScheme
+    
+    var body: some View {
+        Text(batteryInfo.lastUpdateTime.formatted(date: .omitted, time: .shortened))
+            .font(.caption2)
+            .foregroundColor(Color.subtleTextColor(for: colorScheme))
     }
 }
 

@@ -13,25 +13,133 @@ import UserNotifications
 class BatteryMonitorService: ObservableObject {
     @Published var batteryInfo: BatteryInfo = BatteryInfo()
     
+    // MARK: - Performance Optimizations
     private var timer: Timer?
     private var lastAlertTime: Date = Date.distantPast
     private var lastBatteryState: (level: Float, pluggedIn: Bool) = (1.0, false)
+    private var lastBatteryInfo: BatteryInfo?
+    private var isMonitoring = false
+    
+    // Adaptive polling intervals - optimized for faster response
+    private let fastPollingInterval: TimeInterval = 1.0  // Reduced from 2.0
+    private let slowPollingInterval: TimeInterval = 5.0  // Reduced from 10.0
+    private let backgroundPollingInterval: TimeInterval = 15.0 // Reduced from 30.0
+    
+    // Power source change detection
+    private var lastPowerSource: String = ""
+    private var powerSourceChangeTimer: Timer?
+    
+    // Memory management
+    private var notificationQueue = DispatchQueue(label: "com.batteryprotect.notifications", qos: .utility)
+    private var batteryInfoCache: [String: Any] = [:]
     
     init() {
         requestNotificationPermission()
     }
     
+    deinit {
+        stopMonitoring()
+    }
+    
     func startMonitoring() {
-        updateBatteryStatus()
+        guard !isMonitoring else { return }
+        isMonitoring = true
         
-        timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
-            self.updateBatteryStatus()
-        }
+        updateBatteryStatus()
+        startAdaptivePolling()
+        
+        // Start power source change detection
+        startPowerSourceMonitoring()
     }
     
     func stopMonitoring() {
+        isMonitoring = false
         timer?.invalidate()
         timer = nil
+        powerSourceChangeTimer?.invalidate()
+        powerSourceChangeTimer = nil
+        batteryInfoCache.removeAll()
+    }
+    
+    private func startAdaptivePolling() {
+        // Use adaptive polling based on system state
+        let interval = getOptimalPollingInterval()
+        
+        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+            self?.updateBatteryStatus()
+        }
+    }
+    
+    private func startPowerSourceMonitoring() {
+        // Monitor power source changes more frequently
+        powerSourceChangeTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            self?.checkPowerSourceChange()
+        }
+    }
+    
+    private func checkPowerSourceChange() {
+        let currentPowerSource = getCurrentPowerSource()
+        
+        if currentPowerSource != lastPowerSource {
+            // Power source changed - update immediately
+            lastPowerSource = currentPowerSource
+            updateBatteryStatus()
+            
+            // Temporarily increase polling frequency for faster response
+            increasePollingFrequency()
+        }
+    }
+    
+    private func getCurrentPowerSource() -> String {
+        let snapshot = IOPSCopyPowerSourcesInfo().takeRetainedValue()
+        let sources: NSArray = IOPSCopyPowerSourcesList(snapshot).takeRetainedValue()
+        
+        guard let source = sources.firstObject else {
+            return "Unknown"
+        }
+        
+        let description = IOPSGetPowerSourceDescription(snapshot, source as CFTypeRef).takeUnretainedValue() as? [String: Any]
+        return description?[kIOPSPowerSourceStateKey as String] as? String ?? "Unknown"
+    }
+    
+    private func increasePollingFrequency() {
+        // Temporarily increase polling to 0.5 seconds for 10 seconds
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            self?.updateBatteryStatus()
+        }
+        
+        // Reset to normal polling after 10 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10.0) { [weak self] in
+            self?.resetToNormalPolling()
+        }
+    }
+    
+    private func resetToNormalPolling() {
+        guard isMonitoring else { return }
+        
+        let interval = getOptimalPollingInterval()
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+            self?.updateBatteryStatus()
+        }
+    }
+    
+    private func getOptimalPollingInterval() -> TimeInterval {
+        // Adaptive polling based on battery state and system activity
+        if let batteryInfo = lastBatteryInfo {
+            // Fast polling when battery is critical or charging
+            if batteryInfo.isCriticalBattery || batteryInfo.isCharging {
+                return fastPollingInterval
+            }
+            
+            // Slow polling when battery is stable
+            if batteryInfo.level > 0.3 && !batteryInfo.isPluggedIn {
+                return slowPollingInterval
+            }
+        }
+        
+        return fastPollingInterval
     }
     
     private func requestNotificationPermission() {
@@ -43,14 +151,62 @@ class BatteryMonitorService: ObservableObject {
     }
     
     private func updateBatteryStatus() {
+        guard isMonitoring else { return }
+        
         let newBatteryInfo = getBatteryInfo()
         let pluggedIn = newBatteryInfo.isPluggedIn
         
-        DispatchQueue.main.async {
-            self.batteryInfo = newBatteryInfo
+        // Always update UI for power source changes
+        let shouldUpdate = shouldUpdateUI(newBatteryInfo: newBatteryInfo) || 
+                          newBatteryInfo.powerSource != (lastBatteryInfo?.powerSource ?? "")
+        
+        if shouldUpdate {
+            DispatchQueue.main.async { [weak self] in
+                self?.batteryInfo = newBatteryInfo
+            }
         }
         
+        // Check for alerts
         checkBatteryAlerts(level: newBatteryInfo.level, pluggedIn: pluggedIn)
+        
+        // Update polling interval if needed
+        updatePollingIntervalIfNeeded(newBatteryInfo: newBatteryInfo)
+        
+        lastBatteryInfo = newBatteryInfo
+    }
+    
+    private func shouldUpdateUI(newBatteryInfo: BatteryInfo) -> Bool {
+        guard let lastInfo = lastBatteryInfo else { return true }
+        
+        // Update if battery level changed by more than 1%
+        let levelDifference = abs(newBatteryInfo.level - lastInfo.level)
+        if levelDifference > 0.01 {
+            return true
+        }
+        
+        // Update if charging status changed
+        if newBatteryInfo.isCharging != lastInfo.isCharging {
+            return true
+        }
+        
+        // Update if power source changed
+        if newBatteryInfo.powerSource != lastInfo.powerSource {
+            return true
+        }
+        
+        // Update every 15 seconds regardless (reduced from 30)
+        let timeSinceLastUpdate = Date().timeIntervalSince(lastInfo.lastUpdateTime)
+        return timeSinceLastUpdate > 15
+    }
+    
+    private func updatePollingIntervalIfNeeded(newBatteryInfo: BatteryInfo) {
+        let currentInterval = timer?.timeInterval ?? fastPollingInterval
+        let optimalInterval = getOptimalPollingInterval()
+        
+        if abs(currentInterval - optimalInterval) > 0.1 {
+            timer?.invalidate()
+            startAdaptivePolling()
+        }
     }
     
     private func checkBatteryAlerts(level: Float, pluggedIn: Bool) {
@@ -95,25 +251,33 @@ class BatteryMonitorService: ObservableObject {
     }
     
     private func showNotification(title: String, message: String) {
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = message
-        content.sound = .default
-        
-        let request = UNNotificationRequest(
-            identifier: UUID().uuidString,
-            content: content,
-            trigger: nil
-        )
-        
-        UNUserNotificationCenter.current().add(request) { error in
-            if let error = error {
-                print("Notification error: \(error)")
+        notificationQueue.async {
+            let content = UNMutableNotificationContent()
+            content.title = title
+            content.body = message
+            content.sound = .default
+            
+            let request = UNNotificationRequest(
+                identifier: UUID().uuidString,
+                content: content,
+                trigger: nil
+            )
+            
+            UNUserNotificationCenter.current().add(request) { error in
+                if let error = error {
+                    print("Notification error: \(error)")
+                }
             }
         }
     }
     
     private func getBatteryInfo() -> BatteryInfo {
+        // Use cached battery info if available and recent (reduced cache time for faster updates)
+        if let cachedInfo = getCachedBatteryInfo(), 
+           Date().timeIntervalSince(cachedInfo.lastUpdateTime) < 2.0 { // Reduced from 5.0
+            return cachedInfo
+        }
+        
         let snapshot = IOPSCopyPowerSourcesInfo().takeRetainedValue()
         let sources: NSArray = IOPSCopyPowerSourcesList(snapshot).takeRetainedValue()
         
@@ -186,7 +350,7 @@ class BatteryMonitorService: ObservableObject {
             formattedPowerSource = powerSourceState
         }
         
-        return BatteryInfo(
+        let batteryInfo = BatteryInfo(
             level: batteryLevel,
             powerSource: formattedPowerSource,
             chargingStatus: chargingStatus,
@@ -194,5 +358,19 @@ class BatteryMonitorService: ObservableObject {
             healthPercentage: healthPercentage,
             lastUpdateTime: Date()
         )
+        
+        // Cache the result
+        cacheBatteryInfo(batteryInfo)
+        
+        return batteryInfo
+    }
+    
+    private func cacheBatteryInfo(_ batteryInfo: BatteryInfo) {
+        batteryInfoCache["lastBatteryInfo"] = batteryInfo
+        batteryInfoCache["lastUpdateTime"] = Date()
+    }
+    
+    private func getCachedBatteryInfo() -> BatteryInfo? {
+        return batteryInfoCache["lastBatteryInfo"] as? BatteryInfo
     }
 } 

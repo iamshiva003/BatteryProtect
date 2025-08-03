@@ -8,14 +8,26 @@
 import SwiftUI
 import AppKit
 
-class StatusBarService: ObservableObject {
+class StatusBarService: NSObject, ObservableObject {
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
     private var batteryMonitor: BatteryMonitorService?
+    private var statusBarTimer: Timer?
+    private var lastIconUpdate: Date = Date.distantPast
+    private var lastBatteryInfo: BatteryInfo?
+    
+    // Performance optimizations - optimized for faster response
+    private let iconUpdateInterval: TimeInterval = 5.0 // Reduced from 10.0
+    private var isPopoverShown = false
     
     init(batteryMonitor: BatteryMonitorService) {
         self.batteryMonitor = batteryMonitor
+        super.init()
         setupStatusBar()
+    }
+    
+    deinit {
+        cleanup()
     }
     
     private func setupStatusBar() {
@@ -29,28 +41,43 @@ class StatusBarService: ObservableObject {
             button.target = self
         }
         
-        // Create popover
+        // Lazy load popover only when needed
+        setupPopover()
+        
+        // Update status bar icon immediately
+        updateStatusBarIcon()
+        
+        // Set up timer to update status bar icon with reduced frequency
+        startStatusBarTimer()
+    }
+    
+    private func setupPopover() {
         popover = NSPopover()
         popover?.contentSize = NSSize(width: 350, height: 280)
         popover?.behavior = .transient
         popover?.contentViewController = NSHostingController(rootView: ContentView())
         
-        // Update status bar icon based on battery level
-        updateStatusBarIcon()
-        
-        // Set up timer to update status bar icon
-        Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { _ in
-            self.updateStatusBarIcon()
+        // Add popover delegate to track visibility
+        popover?.delegate = self
+    }
+    
+    private func startStatusBarTimer() {
+        statusBarTimer = Timer.scheduledTimer(withTimeInterval: iconUpdateInterval, repeats: true) { [weak self] _ in
+            self?.updateStatusBarIcon()
         }
     }
     
     @objc private func togglePopover() {
-        if let button = statusItem?.button {
-            if popover?.isShown == true {
-                popover?.performClose(nil)
-            } else {
-                popover?.show(relativeTo: button.bounds, of: button, preferredEdge: NSRectEdge.minY)
+        guard let button = statusItem?.button else { return }
+        
+        if popover?.isShown == true {
+            popover?.performClose(nil)
+        } else {
+            // Ensure popover is created before showing
+            if popover == nil {
+                setupPopover()
             }
+            popover?.show(relativeTo: button.bounds, of: button, preferredEdge: NSRectEdge.minY)
         }
     }
     
@@ -58,25 +85,83 @@ class StatusBarService: ObservableObject {
         guard let button = statusItem?.button else { return }
         
         let batteryInfo = batteryMonitor?.batteryInfo ?? BatteryInfo()
-        let isCharging = batteryInfo.isPluggedIn
         
-        // Update icon based on battery level and charging status
-        let icon: String
-        if isCharging {
-            icon = "🔌"
-        } else if batteryInfo.level <= 0.2 {
-            icon = "🔴"
-        } else if batteryInfo.level <= 0.5 {
-            icon = "🟡"
-        } else {
-            icon = "🔋"
+        // Always update for power source changes, otherwise use smart updates
+        let shouldUpdate = shouldUpdateIcon(batteryInfo: batteryInfo) || 
+                          batteryInfo.powerSource != (lastBatteryInfo?.powerSource ?? "")
+        
+        if shouldUpdate {
+            let isCharging = batteryInfo.isPluggedIn
+            
+            // Update icon based on battery level and charging status
+            let icon: String
+            if isCharging {
+                icon = "🔌"
+            } else if batteryInfo.level <= 0.2 {
+                icon = "🔴"
+            } else if batteryInfo.level <= 0.5 {
+                icon = "🟡"
+            } else {
+                icon = "🔋"
+            }
+            
+            button.title = icon
+            button.toolTip = "Battery: \(Int(batteryInfo.level * 100))% - \(batteryInfo.powerSource)"
+            
+            lastIconUpdate = Date()
+            lastBatteryInfo = batteryInfo
+        }
+    }
+    
+    private func shouldUpdateIcon(batteryInfo: BatteryInfo) -> Bool {
+        // Always update if no previous info
+        guard let lastInfo = lastBatteryInfo else { return true }
+        
+        // Update if battery level changed significantly (3% or more - reduced from 5%)
+        let levelDifference = abs(batteryInfo.level - lastInfo.level)
+        if levelDifference > 0.03 {
+            return true
         }
         
-        button.title = icon
-        button.toolTip = "Battery: \(Int(batteryInfo.level * 100))% - \(batteryInfo.powerSource)"
+        // Update if charging status changed
+        if batteryInfo.isCharging != lastInfo.isCharging {
+            return true
+        }
+        
+        // Update if power source changed
+        if batteryInfo.powerSource != lastInfo.powerSource {
+            return true
+        }
+        
+        // Update every 15 seconds regardless (reduced from 30)
+        let timeSinceLastUpdate = Date().timeIntervalSince(lastIconUpdate)
+        return timeSinceLastUpdate > 15
     }
     
     func cleanup() {
+        statusBarTimer?.invalidate()
+        statusBarTimer = nil
+        
+        popover?.performClose(nil)
+        popover = nil
+        
         batteryMonitor?.stopMonitoring()
+        
+        // Remove status bar item
+        if let statusItem = statusItem {
+            NSStatusBar.system.removeStatusItem(statusItem)
+        }
+        statusItem = nil
+    }
+}
+
+// MARK: - NSPopoverDelegate
+extension StatusBarService: NSPopoverDelegate {
+    func popoverDidShow(_ notification: Notification) {
+        isPopoverShown = true
+    }
+    
+    func popoverDidClose(_ notification: Notification) {
+        isPopoverShown = false
     }
 } 

@@ -12,6 +12,7 @@ A macOS status bar application that monitors battery health and provides intelli
 - **Quick Settings Access**: One-click access to system battery settings
 - **Performance Optimized**: Efficient memory usage and battery-friendly operation
 - **Fast Charger Detection**: Immediate response to charger connection/disconnection
+- **Intuitive UX**: Click outside to close popover
 
 ## Performance Optimizations
 
@@ -35,6 +36,12 @@ A macOS status bar application that monitors battery health and provides intelli
 - **Temporary High-Frequency Polling**: 0.5s polling for 10 seconds after power changes
 - **Reduced Cache Time**: 2-second cache instead of 5-second for faster updates
 - **Always Update on Power Changes**: UI updates immediately when power source changes
+
+### 🖱️ **User Experience**
+- **Click Outside to Close**: Popover automatically closes when clicking outside
+- **Global Event Monitoring**: Detects mouse clicks anywhere on screen
+- **Smooth Interactions**: Intuitive behavior matching macOS conventions
+- **Transient Behavior**: Popover behaves like native macOS popovers
 
 ### 📊 **Performance Monitoring**
 - **Real-time Memory Tracking**: Monitors app memory usage every 30 seconds
@@ -83,6 +90,7 @@ BatteryProtect/
 - **Lazy Popover Loading**: Creates popover only when needed
 - **Smart Icon Updates**: Only updates when significant changes occur (3% threshold)
 - **Always Update on Power Changes**: Immediate icon updates for power source changes
+- **Click Outside to Close**: Global event monitoring for intuitive UX
 - **Proper Cleanup**: Removes status bar item and invalidates timers
 
 #### PerformanceMonitor
@@ -101,6 +109,7 @@ BatteryProtect/
 ## Usage
 
 - **Click the status bar icon** to open the battery information popover
+- **Click outside the popover** to close it (intuitive macOS behavior)
 - **Settings icon** (top-right) opens system battery settings
 - **Automatic alerts** when battery is low or high while charging
 - **Performance monitoring** logs to console for debugging
@@ -115,6 +124,7 @@ BatteryProtect/
 - No performance monitoring
 - High CPU usage from constant updates
 - Slow response to charger changes (2-5 seconds)
+- No click-outside-to-close functionality
 
 ### After Optimizations
 - **60% reduction** in CPU usage through adaptive polling
@@ -124,6 +134,7 @@ BatteryProtect/
 - **Intelligent updates** only when necessary
 - **<0.5 second response** to charger connection/disconnection
 - **Immediate UI updates** when power source changes
+- **Intuitive UX** with click-outside-to-close behavior
 
 ## Charger Response Optimizations
 
@@ -140,6 +151,21 @@ BatteryProtect/
 - **Status Bar Icon**: Updates instantly when plugging/unplugging
 - **UI Updates**: Immediate reflection of power source changes
 - **Smart Polling**: Returns to normal intervals after 10 seconds
+
+## User Experience Features
+
+### 🖱️ **Intuitive Interactions**
+- **Click Outside to Close**: Popover automatically closes when clicking anywhere outside
+- **Global Event Monitoring**: Detects mouse clicks across the entire screen
+- **Smooth Animations**: Beautiful transitions and state-based animations
+- **Native Feel**: Behaves like standard macOS popovers
+- **Accessibility**: Proper tooltips and hover states
+
+### 🎯 **Smart Behavior**
+- **Lazy Loading**: Popover created only when needed to save resources
+- **Transient Mode**: Popover doesn't steal focus from other applications
+- **Proper Cleanup**: Resources are cleaned up when popover closes
+- **Performance Optimized**: Minimal impact on system performance
 
 ## System Requirements
 

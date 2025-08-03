@@ -57,8 +57,38 @@ class StatusBarService: NSObject, ObservableObject {
         popover?.behavior = .transient
         popover?.contentViewController = NSHostingController(rootView: ContentView())
         
-        // Add popover delegate to track visibility
+        // Add popover delegate to track visibility and handle outside clicks
         popover?.delegate = self
+        
+        // Set up global event monitor to detect clicks outside popover
+        setupGlobalEventMonitor()
+    }
+    
+    private func setupGlobalEventMonitor() {
+        // Monitor mouse clicks globally to detect clicks outside the popover
+        NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            self?.handleGlobalMouseClick(event: event)
+        }
+    }
+    
+    private func handleGlobalMouseClick(event: NSEvent) {
+        guard let popover = popover, popover.isShown else { return }
+        
+        // Get the popover window
+        guard let popoverWindow = popover.contentViewController?.view.window else { return }
+        
+        // Get the click location and popover frame
+        let clickLocation = event.locationInWindow
+        let popoverFrame = popoverWindow.frame
+        
+        // Simple check: if click is not within the popover frame, close it
+        // We'll use the window coordinates directly since they should be in the same coordinate system
+        if !popoverFrame.contains(clickLocation) {
+            // Click is outside the popover, close it
+            DispatchQueue.main.async {
+                popover.performClose(nil)
+            }
+        }
     }
     
     private func startStatusBarTimer() {
@@ -163,5 +193,10 @@ extension StatusBarService: NSPopoverDelegate {
     
     func popoverDidClose(_ notification: Notification) {
         isPopoverShown = false
+    }
+    
+    func popoverShouldClose(_ popover: NSPopover) -> Bool {
+        // Allow the popover to close when clicking outside
+        return true
     }
 } 

@@ -109,18 +109,7 @@ The app uses these default thresholds:
 
 ### Main Interface
 ```
-┌─────────────────────────────┐
-│        BatteryProtect       │
-│                             │
-│  Battery Level: 97%         │
-│  Power Source: Power Adapter│
-│  Status: Not Charging       │
-│                             │
-│  Last Update: 2:30 PM       │
-│  Running in background      │
-│                             │
-│  Check menu bar for access  │
-└─────────────────────────────┘
+![Charging Image](image.png)
 ```
 
 ### Menu Bar

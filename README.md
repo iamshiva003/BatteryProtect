@@ -13,6 +13,7 @@ A macOS status bar application that monitors battery health and provides intelli
 - **Performance Optimized**: Efficient memory usage and battery-friendly operation
 - **Fast Charger Detection**: Immediate response to charger connection/disconnection
 - **Intuitive UX**: Click outside to close popover
+- **Context Menu**: Right-click for quick actions and app management
 
 ## Performance Optimizations
 
@@ -42,6 +43,7 @@ A macOS status bar application that monitors battery health and provides intelli
 - **Global Event Monitoring**: Detects mouse clicks anywhere on screen
 - **Smooth Interactions**: Intuitive behavior matching macOS conventions
 - **Transient Behavior**: Popover behaves like native macOS popovers
+- **Right-Click Context Menu**: Quick access to app actions and battery info
 
 ### 📊 **Performance Monitoring**
 - **Real-time Memory Tracking**: Monitors app memory usage every 30 seconds
@@ -91,6 +93,8 @@ BatteryProtect/
 - **Smart Icon Updates**: Only updates when significant changes occur (3% threshold)
 - **Always Update on Power Changes**: Immediate icon updates for power source changes
 - **Click Outside to Close**: Global event monitoring for intuitive UX
+- **Right-Click Context Menu**: Quick access to app actions and battery info
+- **Window Mode Support**: Opens app in standalone window mode
 - **Proper Cleanup**: Removes status bar item and invalidates timers
 
 #### PerformanceMonitor
@@ -108,12 +112,28 @@ BatteryProtect/
 
 ## Usage
 
-- **Click the status bar icon** to open the battery information popover
+- **Left-click the status bar icon** to open the battery information popover
+- **Right-click the status bar icon** to access context menu with quick actions
 - **Click outside the popover** to close it (intuitive macOS behavior)
 - **Settings icon** (top-right) opens system battery settings
 - **Automatic alerts** when battery is low or high while charging
 - **Performance monitoring** logs to console for debugging
 - **Fast charger detection** - immediate response to plugging/unplugging
+
+### 🖱️ **Context Menu Options**
+
+**Right-click the status bar icon to access:**
+
+1. **Battery Information** (read-only):
+   - Current battery percentage
+   - Power source (AC/Battery)
+
+2. **Quick Actions**:
+   - **Open in Window** (⌘W) - Opens app in standalone window mode
+   - **Battery Settings** (⌘S) - Opens system battery preferences
+
+3. **App Management**:
+   - **Quit BatteryProtect** (⌘Q) - Closes the application
 
 ## Performance Benefits
 
@@ -125,6 +145,7 @@ BatteryProtect/
 - High CPU usage from constant updates
 - Slow response to charger changes (2-5 seconds)
 - No click-outside-to-close functionality
+- No context menu for quick actions
 
 ### After Optimizations
 - **60% reduction** in CPU usage through adaptive polling
@@ -135,6 +156,8 @@ BatteryProtect/
 - **<0.5 second response** to charger connection/disconnection
 - **Immediate UI updates** when power source changes
 - **Intuitive UX** with click-outside-to-close behavior
+- **Quick access** to app actions via right-click context menu
+- **Window mode support** for users who prefer standalone windows
 
 ## Charger Response Optimizations
 
@@ -160,12 +183,22 @@ BatteryProtect/
 - **Smooth Animations**: Beautiful transitions and state-based animations
 - **Native Feel**: Behaves like standard macOS popovers
 - **Accessibility**: Proper tooltips and hover states
+- **Right-Click Context Menu**: Quick access to app actions and battery information
 
 ### 🎯 **Smart Behavior**
 - **Lazy Loading**: Popover created only when needed to save resources
 - **Transient Mode**: Popover doesn't steal focus from other applications
 - **Proper Cleanup**: Resources are cleaned up when popover closes
 - **Performance Optimized**: Minimal impact on system performance
+- **Window Mode**: Alternative interface for users who prefer standalone windows
+- **Keyboard Shortcuts**: Quick access with ⌘W, ⌘S, and ⌘Q
+
+### 🪟 **Window Mode Features**
+- **Standalone Window**: Opens app in a resizable, movable window
+- **Full Interface**: Complete battery monitoring interface in window format
+- **Window Controls**: Standard macOS window controls (close, minimize, resize)
+- **App Activation**: Brings app to front when window is opened
+- **Alternative Access**: Provides another way to access battery information
 
 ## System Requirements
 

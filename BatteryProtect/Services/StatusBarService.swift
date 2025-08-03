@@ -11,7 +11,7 @@ import AppKit
 class StatusBarService: NSObject, ObservableObject {
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
-    private var batteryMonitor: BatteryMonitorService?
+    private weak var batteryMonitor: BatteryMonitorService?
     private var statusBarTimer: Timer?
     private var lastIconUpdate: Date = Date.distantPast
     private var lastBatteryInfo: BatteryInfo?
@@ -20,6 +20,15 @@ class StatusBarService: NSObject, ObservableObject {
     private let iconUpdateInterval: TimeInterval = 5.0 // Reduced from 10.0
     private var isPopoverShown = false
     
+    // Window management - singleton approach
+    private static var sharedWindowController: NSWindowController?
+    
+    // Static reference to status bar item for force quit cleanup
+    private static var sharedStatusItem: NSStatusItem?
+    
+    // Global event monitor for detecting clicks outside popover
+    private var globalMonitor: Any?
+    
     init(batteryMonitor: BatteryMonitorService) {
         self.batteryMonitor = batteryMonitor
         super.init()
@@ -27,6 +36,7 @@ class StatusBarService: NSObject, ObservableObject {
     }
     
     deinit {
+        print("🛑 StatusBarService deinit - cleaning up resources")
         cleanup()
     }
     
@@ -34,11 +44,15 @@ class StatusBarService: NSObject, ObservableObject {
         // Create status bar item
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         
+        // Store static reference for force quit cleanup
+        StatusBarService.sharedStatusItem = statusItem
+        
         if let button = statusItem?.button {
             button.title = "🔋"
             button.toolTip = "Battery Protect"
             button.action = #selector(togglePopover)
             button.target = self
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
         
         // Lazy load popover only when needed
@@ -52,6 +66,9 @@ class StatusBarService: NSObject, ObservableObject {
     }
     
     private func setupPopover() {
+        // Only create popover if it doesn't exist
+        guard popover == nil else { return }
+        
         popover = NSPopover()
         popover?.contentSize = NSSize(width: 350, height: 280)
         popover?.behavior = .transient
@@ -66,7 +83,7 @@ class StatusBarService: NSObject, ObservableObject {
     
     private func setupGlobalEventMonitor() {
         // Monitor mouse clicks globally to detect clicks outside the popover
-        NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
             self?.handleGlobalMouseClick(event: event)
         }
     }
@@ -74,19 +91,19 @@ class StatusBarService: NSObject, ObservableObject {
     private func handleGlobalMouseClick(event: NSEvent) {
         guard let popover = popover, popover.isShown else { return }
         
-        // Get the popover window
-        guard let popoverWindow = popover.contentViewController?.view.window else { return }
+        // Get the popover window with proper null checking
+        guard let contentViewController = popover.contentViewController,
+              let popoverWindow = contentViewController.view.window else { return }
         
         // Get the click location and popover frame
         let clickLocation = event.locationInWindow
         let popoverFrame = popoverWindow.frame
         
         // Simple check: if click is not within the popover frame, close it
-        // We'll use the window coordinates directly since they should be in the same coordinate system
         if !popoverFrame.contains(clickLocation) {
             // Click is outside the popover, close it
-            DispatchQueue.main.async {
-                popover.performClose(nil)
+            DispatchQueue.main.async { [weak self] in
+                self?.popover?.performClose(nil)
             }
         }
     }
@@ -100,14 +117,132 @@ class StatusBarService: NSObject, ObservableObject {
     @objc private func togglePopover() {
         guard let button = statusItem?.button else { return }
         
-        if popover?.isShown == true {
-            popover?.performClose(nil)
+        // Check if it's a right-click
+        let event = NSApp.currentEvent
+        if event?.type == .rightMouseUp {
+            showContextMenu(for: button)
+            return
+        }
+        
+        // Left click - toggle popover
+        if let popover = popover, popover.isShown {
+            popover.performClose(nil)
         } else {
             // Ensure popover is created before showing
             if popover == nil {
                 setupPopover()
             }
-            popover?.show(relativeTo: button.bounds, of: button, preferredEdge: NSRectEdge.minY)
+            
+            if let popover = popover {
+                popover.show(relativeTo: button.bounds, of: button, preferredEdge: NSRectEdge.minY)
+                // Activate the app to make the popover key and focused
+                NSApp.activate(ignoringOtherApps: true)
+            }
+        }
+    }
+    
+    private func showContextMenu(for button: NSStatusBarButton) {
+        let menu = NSMenu()
+        
+        // Battery Info Section - with safety checks
+        if let batteryMonitor = batteryMonitor {
+            let batteryInfo = batteryMonitor.batteryInfo
+            let batteryTitle = NSMenuItem(title: "Battery: \(Int(batteryInfo.level * 100))%", action: nil, keyEquivalent: "")
+            batteryTitle.isEnabled = false
+            menu.addItem(batteryTitle)
+            
+            let powerSourceTitle = NSMenuItem(title: "Source: \(batteryInfo.powerSource)", action: nil, keyEquivalent: "")
+            powerSourceTitle.isEnabled = false
+            menu.addItem(powerSourceTitle)
+        } else {
+            // Fallback if batteryMonitor is nil
+            let batteryTitle = NSMenuItem(title: "Battery: Loading...", action: nil, keyEquivalent: "")
+            batteryTitle.isEnabled = false
+            menu.addItem(batteryTitle)
+            
+            let powerSourceTitle = NSMenuItem(title: "Source: Unknown", action: nil, keyEquivalent: "")
+            powerSourceTitle.isEnabled = false
+            menu.addItem(powerSourceTitle)
+        }
+        
+        menu.addItem(NSMenuItem.separator())
+        
+        // Open in Window Mode
+        let openWindowItem = NSMenuItem(title: "Open in Window", action: #selector(openInWindowMode), keyEquivalent: "w")
+        openWindowItem.target = self
+        menu.addItem(openWindowItem)
+        
+        // Open System Battery Settings
+        let settingsItem = NSMenuItem(title: "Battery Settings", action: #selector(openBatterySettings), keyEquivalent: "s")
+        settingsItem.target = self
+        menu.addItem(settingsItem)
+        
+        menu.addItem(NSMenuItem.separator())
+        
+        // Quit App
+        let quitItem = NSMenuItem(title: "Quit BatteryProtect", action: #selector(quitApp), keyEquivalent: "q")
+        quitItem.target = self
+        menu.addItem(quitItem)
+        
+        // Show the menu at the button's location with additional safety checks
+        if let event = NSApp.currentEvent, button.window != nil {
+            NSMenu.popUpContextMenu(menu, with: event, for: button)
+        }
+    }
+    
+    @objc private func openInWindowMode() {
+        // If window already exists and is visible, just bring it to front
+        if let existingWindow = StatusBarService.sharedWindowController?.window, existingWindow.isVisible {
+            existingWindow.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+        
+        // Clean up any existing window controller
+        if let existingController = StatusBarService.sharedWindowController {
+            existingController.window?.close()
+            StatusBarService.sharedWindowController = nil
+        }
+        
+        // Create a simple window without complex delegate management
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 400, height: 300),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: true  // Defer window creation to avoid immediate issues
+        )
+        
+        window.title = "BatteryProtect"
+        window.center()
+        
+        // Create a simple hosting view without complex lifecycle
+        let hostingView = NSHostingView(rootView: ContentView())
+        window.contentView = hostingView
+        
+        // Create window controller and store reference
+        let controller = NSWindowController(window: window)
+        StatusBarService.sharedWindowController = controller
+        
+        // Show window
+        controller.showWindow(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+    
+    @objc private func openBatterySettings() {
+        // Open system battery settings with safety check
+        DispatchQueue.main.async { [weak self] in
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.battery") {
+                NSWorkspace.shared.open(url)
+            }
+        }
+    }
+    
+    @objc private func quitApp() {
+        // Quit app with safety check and proper cleanup
+        DispatchQueue.main.async { [weak self] in
+            // Clean up before quitting
+            self?.cleanup()
+            NSApp.terminate(nil)
         }
     }
     
@@ -169,19 +304,65 @@ class StatusBarService: NSObject, ObservableObject {
     }
     
     func cleanup() {
+        print("🧹 StatusBarService cleanup started")
+        
+        // Stop timer first
         statusBarTimer?.invalidate()
         statusBarTimer = nil
         
-        popover?.performClose(nil)
+        // Remove global event monitor
+        if let monitor = globalMonitor {
+            NSEvent.removeMonitor(monitor)
+            globalMonitor = nil
+        }
+        
+        // Close popover
+        if let popover = popover {
+            popover.performClose(nil)
+            popover.delegate = nil
+        }
         popover = nil
         
+        // Clean up shared window controller
+        StatusBarService.cleanupSharedWindow()
+        
+        // Stop battery monitoring
         batteryMonitor?.stopMonitoring()
         
-        // Remove status bar item
+        // Remove status bar item last
         if let statusItem = statusItem {
             NSStatusBar.system.removeStatusItem(statusItem)
         }
         statusItem = nil
+        
+        // Clear static reference
+        StatusBarService.sharedStatusItem = nil
+        
+        print("✅ StatusBarService cleanup completed")
+    }
+    
+    // Static method to cleanup shared window
+    static func cleanupSharedWindow() {
+        if let controller = sharedWindowController {
+            controller.window?.close()
+            sharedWindowController = nil
+        }
+    }
+    
+    // Static method to handle force quit scenarios
+    static func handleForceQuit() {
+        print("🛑 StatusBarService handling force quit")
+        
+        // Clean up shared window immediately
+        cleanupSharedWindow()
+        
+        // Remove status bar item if it exists
+        if let statusItem = sharedStatusItem {
+            NSStatusBar.system.removeStatusItem(statusItem)
+            sharedStatusItem = nil
+        }
+        
+        print("✅ StatusBarService force quit cleanup completed")
     }
 }
 

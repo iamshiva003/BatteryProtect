@@ -26,5 +26,9 @@
 	<string>NSApplication</string>
 	<key>NSUserNotificationAlertStyle</key>
 	<string>alert</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSStatusItem</key>
+	<true/>
 </dict>
 </plist> 

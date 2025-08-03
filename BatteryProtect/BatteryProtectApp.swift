@@ -13,16 +13,6 @@ struct BatteryProtectApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
-        .windowStyle(.hiddenTitleBar)
-        .windowResizability(.contentSize)
-        .defaultSize(width: 350, height: 250)
-        .commands {
-            CommandGroup(replacing: .windowSize) { }
-        }
-        
         Settings {
             EmptyView()
         }
@@ -31,6 +21,7 @@ struct BatteryProtectApp: App {
 
 class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private var statusItem: NSStatusItem?
+    private var popover: NSPopover?
     private var batteryMonitor: BatteryMonitor?
     
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -40,31 +31,136 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         if let button = statusItem?.button {
             button.title = "🔋"
             button.toolTip = "Battery Protect"
+            button.action = #selector(togglePopover)
+            button.target = self
         }
         
-        // Create menu
-        let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Show Window", action: #selector(showWindow), keyEquivalent: "s"))
-        menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
-        
-        statusItem?.menu = menu
+        // Create popover
+        popover = NSPopover()
+        popover?.contentSize = NSSize(width: 350, height: 280)
+        popover?.behavior = .transient
+        popover?.contentViewController = NSHostingController(rootView: ContentView())
         
         // Start battery monitoring
         batteryMonitor = BatteryMonitor()
         batteryMonitor?.startMonitoring()
         
-        // Disable maximize (zoom) and resizing
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            if let window = NSApplication.shared.windows.first {
-                window.styleMask.remove([.resizable, .fullScreen, .fullSizeContentView])
-                window.standardWindowButton(.zoomButton)?.isEnabled = false
+        // Update status bar icon based on battery level
+        updateStatusBarIcon()
+        
+        // Set up timer to update status bar icon
+        Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { _ in
+            self.updateStatusBarIcon()
+        }
+    }
+    
+    @objc private func togglePopover() {
+        if let button = statusItem?.button {
+            if popover?.isShown == true {
+                popover?.performClose(nil)
+            } else {
+                popover?.show(relativeTo: button.bounds, of: button, preferredEdge: NSRectEdge.minY)
             }
         }
     }
     
-    @objc private func showWindow() {
-        NSApp.activate(ignoringOtherApps: true)
+    private func updateStatusBarIcon() {
+        guard let button = statusItem?.button else { return }
+        
+        let (level, powerSource, _, _, _) = getBatteryInfo()
+        let isCharging = powerSource == "Power Adapter"
+        
+        // Update icon based on battery level and charging status
+        let icon: String
+        if isCharging {
+            icon = "🔌"
+        } else if level <= 0.2 {
+            icon = "🔴"
+        } else if level <= 0.5 {
+            icon = "🟡"
+        } else {
+            icon = "🔋"
+        }
+        
+        button.title = icon
+        button.toolTip = "Battery: \(Int(level * 100))% - \(powerSource)"
+    }
+    
+    private func getBatteryInfo() -> (level: Float, powerSource: String, chargingStatus: String, health: String, healthPercentage: Int) {
+        let snapshot = IOPSCopyPowerSourcesInfo().takeRetainedValue()
+        let sources: NSArray = IOPSCopyPowerSourcesList(snapshot).takeRetainedValue()
+        
+        guard let source = sources.firstObject else {
+            return (1.0, "Unknown", "Unknown", "Unknown", 100)
+        }
+        
+        let description = IOPSGetPowerSourceDescription(snapshot, source as CFTypeRef).takeUnretainedValue() as? [String: Any]
+        
+        // Get battery level
+        var batteryLevel: Float = 1.0
+        if let currentCapacity = description?[kIOPSCurrentCapacityKey as String] as? Int,
+           let maxCapacity = description?[kIOPSMaxCapacityKey as String] as? Int,
+           maxCapacity > 0 {
+            batteryLevel = Float(currentCapacity) / Float(maxCapacity)
+        }
+        
+        // Get power source state (matches native macOS indicator)
+        let powerSourceState = description?[kIOPSPowerSourceStateKey as String] as? String ?? "Unknown"
+        
+        // Get charging status
+        let isCharging = description?[kIOPSIsChargingKey as String] as? Bool ?? false
+        let isCharged = description?[kIOPSIsChargedKey as String] as? Bool ?? false
+        let isPresent = description?["IsPresent"] as? Bool ?? true
+        
+        // Determine charging status string to match system
+        let chargingStatus: String
+        if !isPresent {
+            chargingStatus = "No Battery"
+        } else if isCharged {
+            chargingStatus = "Charged"
+        } else if isCharging {
+            chargingStatus = "Charging"
+        } else if powerSourceState == kIOPSACPowerValue {
+            chargingStatus = "Not Charging"
+        } else if powerSourceState == kIOPSBatteryPowerValue {
+            chargingStatus = "Discharging"
+        } else {
+            chargingStatus = "Unknown"
+        }
+        
+        // Get battery health percentage
+        let healthPercentage: Int
+        if let maxCapacity = description?[kIOPSMaxCapacityKey as String] as? Int {
+            // Use the maximum capacity as the health percentage
+            healthPercentage = maxCapacity
+        } else {
+            healthPercentage = 100
+        }
+        
+        // Get battery health description
+        let health: String
+        if healthPercentage >= 90 {
+            health = "Excellent"
+        } else if healthPercentage >= 80 {
+            health = "Good"
+        } else if healthPercentage >= 60 {
+            health = "Fair"
+        } else {
+            health = "Poor"
+        }
+        
+        // Format power source to match native macOS
+        let formattedPowerSource: String
+        switch powerSourceState {
+        case kIOPSACPowerValue:
+            formattedPowerSource = "Power Adapter"
+        case kIOPSBatteryPowerValue:
+            formattedPowerSource = "Battery"
+        default:
+            formattedPowerSource = powerSourceState
+        }
+        
+        return (batteryLevel, formattedPowerSource, chargingStatus, health, healthPercentage)
     }
     
     func applicationWillTerminate(_ notification: Notification) {

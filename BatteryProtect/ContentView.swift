@@ -22,6 +22,8 @@ struct ContentView: View {
     @State private var isHealthHovering: Bool = false
     @State private var pulseScale: CGFloat = 1.0
     
+    @Environment(\.colorScheme) private var colorScheme
+    
     private var powerColor: Color {
         powerSource == "Power Adapter" ? .green : .orange
     }
@@ -38,7 +40,48 @@ struct ContentView: View {
         }
     }
     
-    @Environment(\.colorScheme) private var colorScheme
+    private var backgroundColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.18) : Color.black.opacity(0.08)
+    }
+    
+    private var backgroundGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                powerColor.opacity(colorScheme == .dark ? 0.35 : 0.12),
+                backgroundColor
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+    
+    private var pillBackgroundColor: Color {
+        powerColor.opacity(colorScheme == .dark ? 0.35 : 0.15)
+    }
+    
+    private var healthPillBackgroundColor: Color {
+        healthColor.opacity(colorScheme == .dark ? 0.35 : 0.15)
+    }
+    
+    private var textColor: Color {
+        colorScheme == .dark ? .white.opacity(0.95) : .black.opacity(0.85)
+    }
+    
+    private var secondaryTextColor: Color {
+        colorScheme == .dark ? .white.opacity(0.8) : .black.opacity(0.6)
+    }
+    
+    private var subtleTextColor: Color {
+        colorScheme == .dark ? .white.opacity(0.6) : .black.opacity(0.45)
+    }
+    
+    private var mainBackgroundColor: Color {
+        colorScheme == .dark ? Color.black.opacity(0.3) : Color.white.opacity(0.95)
+    }
+    
+    private var mainBorderColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.25) : Color.black.opacity(0.1)
+    }
     
     private func getBatteryIcon() -> String {
         if batteryLevel <= 0.05 {
@@ -82,180 +125,30 @@ struct ContentView: View {
         return "Battery health: \(batteryHealthPercentage)% of original capacity"
     }
     
-    private var backgroundColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.03)
-    }
-    
-    private var backgroundGradient: LinearGradient {
-        LinearGradient(
-            colors: [
-                powerColor.opacity(colorScheme == .dark ? 0.1 : 0.05),
-                backgroundColor
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
-    
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             // App Title
-            HStack(spacing: 8) {
-                Group {
-                    if chargingStatus == "Charging" {
-                        Image(systemName: "bolt.circle.fill")
-                            .font(.system(size: 24))
-                            .foregroundStyle(powerColor)
-                            .symbolEffect(.bounce, options: .repeating)
-                            .scaleEffect(isHovering ? 1.1 : 1.0)
-                            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isHovering)
-                    } else {
-                        Image(systemName: getBatteryIcon())
-                            .font(.system(size: 24))
-                            .foregroundStyle(getBatteryColor())
-                            .scaleEffect(pulseScale)
-                            .animation(
-                                batteryLevel <= 0.15 ? 
-                                .easeInOut(duration: 1.0).repeatForever(autoreverses: true) : 
-                                .spring(response: 0.3, dampingFraction: 0.6),
-                                value: pulseScale
-                            )
-                    }
-                }
-                
-                Text("Battery")
-                    .font(.system(size: 22, weight: .medium))
-                    .foregroundColor(colorScheme == .dark ? .white.opacity(0.9) : .black.opacity(0.8))
-                + Text("Protect")
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundColor(powerColor)
-            }
-            .padding(.vertical, 12)
-            .padding(.horizontal, 16)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(backgroundGradient)
-                    .scaleEffect(isHovering ? 1.02 : 1.0)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovering)
-            )
-            .onHover { hovering in
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                    isHovering = hovering
-                }
-            }
-            .offset(y: isAppearing ? 0 : -20)
-            .opacity(isAppearing ? 1 : 0)
-            .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1), value: isAppearing)
+            titleSection
             
             // Battery Level Circle
-            ZStack {
-                // Background Circle
-                Circle()
-                    .stroke(backgroundColor, lineWidth: 12)
-                    .frame(width: 140, height: 140)
-                
-                // Progress Circle
-                Circle()
-                    .trim(from: 0, to: CGFloat(batteryLevel))
-                    .stroke(
-                        powerColor,
-                        style: StrokeStyle(lineWidth: 12, lineCap: .round)
-                    )
-                    .frame(width: 140, height: 140)
-                    .rotationEffect(.degrees(-90))
-                    .animation(.spring(dampingFraction: 0.7), value: batteryLevel)
-                
-                // Charging Animation
-                if powerSource == "Power Adapter" && chargingStatus == "Charging" {
-                    Circle()
-                        .trim(from: 0, to: 0.3)
-                        .stroke(powerColor.opacity(0.3), lineWidth: 12)
-                        .frame(width: 140, height: 140)
-                        .rotationEffect(.degrees(isAnimating ? 360 : 0))
-                        .animation(
-                            .linear(duration: 1.5)
-                            .repeatForever(autoreverses: false),
-                            value: isAnimating
-                        )
-                }
-                
-                // Battery Level Text
-                VStack(spacing: 2) {
-                    Text("\(Int(batteryLevel * 100))%")
-                        .font(.system(size: 32, weight: .medium))
-                        .foregroundColor(powerColor)
-                        .animation(.spring(), value: batteryLevel)
-                        .scaleEffect(batteryLevel <= 0.15 ? pulseScale : 1.0)
-                    
-                    Text(chargingStatus)
-                        .font(.caption)
-                        .foregroundColor(colorScheme == .dark ? .white.opacity(0.7) : .black.opacity(0.6))
-                        .animation(.easeInOut, value: chargingStatus)
-                        .transition(.scale.combined(with: .opacity))
-                }
-            }
-            .scaleEffect(isAppearing ? 1 : 0.8)
-            .opacity(isAppearing ? 1 : 0)
-            .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.2), value: isAppearing)
+            batteryCircleSection
             
             // Status Pills Row
-            HStack(spacing: 12) {
-                // Power Source Pill
-                HStack(spacing: 4) {
-                    Image(systemName: powerSource == "Power Adapter" ? "poweroutlet.type.f" : "battery.100")
-                        .font(.caption2)
-                    Text(powerSource)
-                        .font(.caption)
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(
-                    Capsule()
-                        .fill(powerColor.opacity(colorScheme == .dark ? 0.15 : 0.1))
-                        .scaleEffect(isHovering ? 1.05 : 1.0)
-                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovering)
-                )
-                .foregroundColor(powerColor)
-                .animation(.easeInOut, value: powerSource)
-                
-                // Battery Health Pill
-                HStack(spacing: 4) {
-                    Image(systemName: getHealthIcon())
-                        .font(.caption2)
-                    Text("\(batteryHealthPercentage)%")
-                        .font(.caption)
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(
-                    Capsule()
-                        .fill(healthColor.opacity(colorScheme == .dark ? 0.15 : 0.1))
-                        .scaleEffect(isHealthHovering ? 1.05 : 1.0)
-                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHealthHovering)
-                )
-                .foregroundColor(healthColor)
-                .animation(.easeInOut, value: batteryHealthPercentage)
-                .onHover { hovering in
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        isHealthHovering = hovering
-                    }
-                }
-                .help(getHealthTooltip())
-            }
-            .offset(y: isAppearing ? 0 : 20)
-            .opacity(isAppearing ? 1 : 0)
-            .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.3), value: isAppearing)
+            statusPillsSection
             
-            // Last Update (minimal)
-            Text(lastUpdateTime.formatted(date: .omitted, time: .shortened))
-                .font(.caption2)
-                .foregroundColor(colorScheme == .dark ? .white.opacity(0.5) : .black.opacity(0.4))
-                .offset(y: isAppearing ? 0 : 20)
-                .opacity(isAppearing ? 1 : 0)
-                .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.4), value: isAppearing)
+            // Last Update
+            lastUpdateSection
         }
-        .padding()
-        .frame(minWidth: 300, minHeight: 260)
+        .padding(16)
+        .frame(width: 320, height: 240)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(mainBackgroundColor)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(mainBorderColor, lineWidth: 1)
+                )
+        )
         .onAppear {
             startUIUpdates()
             withAnimation {
@@ -265,6 +158,177 @@ struct ContentView: View {
         .onDisappear {
             stopUIUpdates()
         }
+    }
+    
+    private var titleSection: some View {
+        HStack(spacing: 6) {
+            Group {
+                if chargingStatus == "Charging" {
+                    Image(systemName: "bolt.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(powerColor)
+                        .symbolEffect(.bounce, options: .repeating)
+                        .scaleEffect(isHovering ? 1.1 : 1.0)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isHovering)
+                } else {
+                    Image(systemName: getBatteryIcon())
+                        .font(.system(size: 20))
+                        .foregroundStyle(getBatteryColor())
+                        .scaleEffect(pulseScale)
+                        .animation(
+                            batteryLevel <= 0.15 ? 
+                            .easeInOut(duration: 1.0).repeatForever(autoreverses: true) : 
+                            .spring(response: 0.3, dampingFraction: 0.6),
+                            value: pulseScale
+                        )
+                }
+            }
+            
+            Text("Battery")
+                .font(.system(size: 18, weight: .medium))
+                .foregroundColor(textColor)
+            + Text("Protect")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(powerColor)
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(backgroundGradient)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(powerColor.opacity(colorScheme == .dark ? 0.3 : 0.15), lineWidth: 1)
+                )
+                .scaleEffect(isHovering ? 1.02 : 1.0)
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovering)
+        )
+        .onHover { hovering in
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                isHovering = hovering
+            }
+        }
+        .offset(y: isAppearing ? 0 : -20)
+        .opacity(isAppearing ? 1 : 0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1), value: isAppearing)
+    }
+    
+    private var batteryCircleSection: some View {
+        ZStack {
+            // Background Circle
+            Circle()
+                .stroke(backgroundColor, lineWidth: 8)
+                .frame(width: 100, height: 100)
+            
+            // Progress Circle
+            Circle()
+                .trim(from: 0, to: CGFloat(batteryLevel))
+                .stroke(
+                    powerColor,
+                    style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                )
+                .frame(width: 100, height: 100)
+                .rotationEffect(.degrees(-90))
+                .animation(.spring(dampingFraction: 0.7), value: batteryLevel)
+            
+            // Charging Animation
+            if powerSource == "Power Adapter" && chargingStatus == "Charging" {
+                Circle()
+                    .trim(from: 0, to: 0.3)
+                    .stroke(powerColor.opacity(0.5), lineWidth: 8)
+                    .frame(width: 100, height: 100)
+                    .rotationEffect(.degrees(isAnimating ? 360 : 0))
+                    .animation(
+                        .linear(duration: 1.5)
+                        .repeatForever(autoreverses: false),
+                        value: isAnimating
+                    )
+            }
+            
+            // Battery Level Text
+            VStack(spacing: 1) {
+                Text("\(Int(batteryLevel * 100))%")
+                    .font(.system(size: 24, weight: .medium))
+                    .foregroundColor(powerColor)
+                    .animation(.spring(), value: batteryLevel)
+                    .scaleEffect(batteryLevel <= 0.15 ? pulseScale : 1.0)
+                
+                Text(chargingStatus)
+                    .font(.caption2)
+                    .foregroundColor(secondaryTextColor)
+                    .animation(.easeInOut, value: chargingStatus)
+                    .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .scaleEffect(isAppearing ? 1 : 0.8)
+        .opacity(isAppearing ? 1 : 0)
+        .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.2), value: isAppearing)
+    }
+    
+    private var statusPillsSection: some View {
+        HStack(spacing: 8) {
+            // Power Source Pill
+            HStack(spacing: 3) {
+                Image(systemName: powerSource == "Power Adapter" ? "poweroutlet.type.f" : "battery.100")
+                    .font(.caption2)
+                Text(powerSource)
+                    .font(.caption2)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(
+                Capsule()
+                    .fill(pillBackgroundColor)
+                    .overlay(
+                        Capsule()
+                            .stroke(powerColor.opacity(colorScheme == .dark ? 0.4 : 0.25), lineWidth: 1)
+                    )
+                    .scaleEffect(isHovering ? 1.05 : 1.0)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovering)
+            )
+            .foregroundColor(powerColor)
+            .animation(.easeInOut, value: powerSource)
+            
+            // Battery Health Pill
+            HStack(spacing: 3) {
+                Image(systemName: getHealthIcon())
+                    .font(.caption2)
+                Text("\(batteryHealthPercentage)%")
+                    .font(.caption2)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(
+                Capsule()
+                    .fill(healthPillBackgroundColor)
+                    .overlay(
+                        Capsule()
+                            .stroke(healthColor.opacity(colorScheme == .dark ? 0.4 : 0.25), lineWidth: 1)
+                    )
+                    .scaleEffect(isHealthHovering ? 1.05 : 1.0)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHealthHovering)
+            )
+            .foregroundColor(healthColor)
+            .animation(.easeInOut, value: batteryHealthPercentage)
+            .onHover { hovering in
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    isHealthHovering = hovering
+                }
+            }
+            .help(getHealthTooltip())
+        }
+        .offset(y: isAppearing ? 0 : 20)
+        .opacity(isAppearing ? 1 : 0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.3), value: isAppearing)
+    }
+    
+    private var lastUpdateSection: some View {
+        Text(lastUpdateTime.formatted(date: .omitted, time: .shortened))
+            .font(.caption2)
+            .foregroundColor(subtleTextColor)
+            .offset(y: isAppearing ? 0 : 20)
+            .opacity(isAppearing ? 1 : 0)
+            .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.4), value: isAppearing)
     }
     
     private func startUIUpdates() {
@@ -331,8 +395,6 @@ struct ContentView: View {
         }
         
         let description = IOPSGetPowerSourceDescription(snapshot, source as CFTypeRef).takeUnretainedValue() as? [String: Any]
-        
-
         
         // Get battery level
         var batteryLevel: Float = 1.0

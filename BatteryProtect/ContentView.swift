@@ -28,13 +28,13 @@ struct ContentView: View {
     
     private var healthColor: Color {
         if batteryHealthPercentage >= 90 {
-            return .green
+            return powerColor
         } else if batteryHealthPercentage >= 80 {
-            return .blue
+            return powerColor.opacity(0.8)
         } else if batteryHealthPercentage >= 60 {
-            return .orange
+            return powerColor.opacity(0.6)
         } else {
-            return .red
+            return powerColor.opacity(0.4)
         }
     }
     

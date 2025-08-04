@@ -320,25 +320,41 @@ struct PreferencesView: View {
             GroupBox("Alert Settings") {
                 VStack(alignment: .leading, spacing: 12) {
                     Toggle("Enable Low Battery Alerts", isOn: $enableLowBatteryAlerts)
+                        .animation(.easeInOut(duration: 0.2), value: enableLowBatteryAlerts)
                     
                     if enableLowBatteryAlerts {
                         HStack {
                             Text("Low Battery Threshold:")
                             Slider(value: $lowBatteryThreshold, in: 5...50, step: 5)
+                                .animation(.easeInOut(duration: 0.1), value: lowBatteryThreshold)
                             Text("\(Int(lowBatteryThreshold))%")
                                 .frame(width: 40, alignment: .trailing)
+                                .animation(.easeInOut(duration: 0.1), value: lowBatteryThreshold)
                         }
+                        .transition(.asymmetric(
+                            insertion: .opacity.combined(with: .move(edge: .top)),
+                            removal: .opacity.combined(with: .move(edge: .top))
+                        ))
+                        .animation(.easeInOut(duration: 0.3), value: enableLowBatteryAlerts)
                     }
                     
                     Toggle("Enable High Battery Alerts", isOn: $enableHighBatteryAlerts)
+                        .animation(.easeInOut(duration: 0.2), value: enableHighBatteryAlerts)
                     
                     if enableHighBatteryAlerts {
                         HStack {
                             Text("High Battery Threshold:")
                             Slider(value: $highBatteryThreshold, in: 60...95, step: 5)
+                                .animation(.easeInOut(duration: 0.1), value: highBatteryThreshold)
                             Text("\(Int(highBatteryThreshold))%")
                                 .frame(width: 40, alignment: .trailing)
+                                .animation(.easeInOut(duration: 0.1), value: highBatteryThreshold)
                         }
+                        .transition(.asymmetric(
+                            insertion: .opacity.combined(with: .move(edge: .top)),
+                            removal: .opacity.combined(with: .move(edge: .top))
+                        ))
+                        .animation(.easeInOut(duration: 0.3), value: enableHighBatteryAlerts)
                     }
                 }
                 .padding()
@@ -349,9 +365,11 @@ struct PreferencesView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Toggle("Enable Performance Monitoring", isOn: $enablePerformanceMonitoring)
                         .help("Monitor app performance and memory usage")
+                        .animation(.easeInOut(duration: 0.2), value: enablePerformanceMonitoring)
                     
                     Toggle("Start at Login", isOn: $startAtLogin)
                         .help("Automatically start BatteryProtect when you log in")
+                        .animation(.easeInOut(duration: 0.2), value: startAtLogin)
                         .onChange(of: startAtLogin) { newValue in
                             toggleStartAtLogin(enabled: newValue)
                         }
@@ -391,14 +409,20 @@ struct PreferencesView: View {
             // Buttons
             HStack {
                 Button("Reset to Defaults") {
-                    resetToDefaults()
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        resetToDefaults()
+                    }
                 }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
                 
                 Spacer()
                 
                 Button("Open System Battery Settings") {
                     openSystemBatterySettings()
                 }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
             }
             .padding(.bottom, 20)
         }

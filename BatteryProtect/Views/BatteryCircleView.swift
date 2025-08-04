@@ -38,18 +38,13 @@ struct BatteryCircleView: View {
                 .rotationEffect(.degrees(-90))
                 .animation(.spring(dampingFraction: 0.7), value: batteryInfo.level)
             
-            // Charging Animation
+            // Charging indicator (static)
             if batteryInfo.isPluggedIn && batteryInfo.isCharging {
                 Circle()
                     .trim(from: 0, to: 0.3)
                     .stroke(powerColor.opacity(0.5), lineWidth: 8)
                     .frame(width: 100, height: 100)
-                    .rotationEffect(.degrees(isAnimating ? 360 : 0))
-                    .animation(
-                        .linear(duration: 1.5)
-                        .repeatForever(autoreverses: false),
-                        value: isAnimating
-                    )
+                    .rotationEffect(.degrees(0))
             }
             
             // Battery Level Text
@@ -66,23 +61,6 @@ struct BatteryCircleView: View {
                     .transition(.scale.combined(with: .opacity))
             }
         }
-        .onAppear {
-            if batteryInfo.isPluggedIn && batteryInfo.isCharging {
-                withAnimation {
-                    isAnimating = true
-                }
-            }
-        }
-        .onChange(of: batteryInfo.isCharging) {
-            if batteryInfo.isPluggedIn && batteryInfo.isCharging {
-                withAnimation {
-                    isAnimating = true
-                }
-            } else {
-                withAnimation {
-                    isAnimating = false
-                }
-            }
-        }
+
     }
 } 

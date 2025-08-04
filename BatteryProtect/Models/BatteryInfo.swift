@@ -42,15 +42,18 @@ extension BatteryInfo {
     }
     
     var isLowBattery: Bool {
-        level <= 0.2
+        let lowThreshold = UserDefaults.standard.object(forKey: "lowBatteryThreshold") as? Double ?? 20.0
+        return level <= Float(lowThreshold / 100.0)
     }
     
     var isHighBattery: Bool {
-        level >= 0.8
+        let highThreshold = UserDefaults.standard.object(forKey: "highBatteryThreshold") as? Double ?? 80.0
+        return level >= Float(highThreshold / 100.0)
     }
     
     var isCriticalBattery: Bool {
-        level <= 0.15
+        let lowThreshold = UserDefaults.standard.object(forKey: "lowBatteryThreshold") as? Double ?? 20.0
+        return level <= Float((lowThreshold - 5.0) / 100.0) // 5% below low threshold
     }
     
     var batteryIcon: String {
@@ -68,9 +71,13 @@ extension BatteryInfo {
     }
     
     var batteryColor: String {
-        if level <= 0.15 {
+        let lowThreshold = UserDefaults.standard.object(forKey: "lowBatteryThreshold") as? Double ?? 20.0
+        let criticalThreshold = Float((lowThreshold - 5.0) / 100.0)
+        let lowThresholdFloat = Float(lowThreshold / 100.0)
+        
+        if level <= criticalThreshold {
             return "red"
-        } else if level <= 0.25 {
+        } else if level <= lowThresholdFloat {
             return "orange"
         } else if isPluggedIn {
             return "green"

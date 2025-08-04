@@ -190,7 +190,7 @@ class StatusBarService: NSObject, ObservableObject {
         }
     }
     
-    @objc private func openInWindowMode() {
+    @objc func openInWindowMode() {
         // If window already exists and is visible, just bring it to front
         if let existingWindow = StatusBarService.sharedWindowController?.window, existingWindow.isVisible {
             existingWindow.makeKeyAndOrderFront(nil)

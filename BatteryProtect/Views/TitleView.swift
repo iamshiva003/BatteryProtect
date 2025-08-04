@@ -43,7 +43,6 @@ struct TitleView: View {
                     Image(systemName: "bolt.circle.fill")
                         .font(.system(size: 20))
                         .foregroundStyle(powerColor)
-                        .symbolEffect(.bounce, options: .repeating)
                         .scaleEffect(isHovering ? 1.1 : 1.0)
                         .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isHovering)
                 } else {

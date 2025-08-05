@@ -41,8 +41,8 @@ class StatusBarService: NSObject, ObservableObject {
     }
     
     private func setupStatusBar() {
-        // Create status bar item
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        // Create status bar item with proper length
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         
         // Store static reference for force quit cleanup
         StatusBarService.sharedStatusItem = statusItem
@@ -53,6 +53,10 @@ class StatusBarService: NSObject, ObservableObject {
             button.action = #selector(togglePopover)
             button.target = self
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+            
+            // Ensure proper button sizing and positioning
+            button.imagePosition = .imageLeft
+            button.imageScaling = .scaleProportionallyDown
         }
         
         // Lazy load popover only when needed
@@ -70,9 +74,13 @@ class StatusBarService: NSObject, ObservableObject {
         guard popover == nil else { return }
         
         popover = NSPopover()
-        popover?.contentSize = NSSize(width: 350, height: 280)
+        popover?.contentSize = NSSize(width: 320, height: 240)
         popover?.behavior = .transient
-        popover?.contentViewController = NSHostingController(rootView: ContentView())
+        popover?.animates = true
+        
+        // Create content view controller
+        let contentViewController = NSHostingController(rootView: ContentView())
+        popover?.contentViewController = contentViewController
         
         // Add popover delegate to track visibility and handle outside clicks
         popover?.delegate = self
@@ -134,9 +142,17 @@ class StatusBarService: NSObject, ObservableObject {
             }
             
             if let popover = popover {
-                popover.show(relativeTo: button.bounds, of: button, preferredEdge: NSRectEdge.minY)
-                // Activate the app to make the popover key and focused
-                NSApp.activate(ignoringOtherApps: true)
+                // Ensure the button is properly positioned before showing popover
+                button.window?.update()
+                
+                // Small delay to ensure proper status bar positioning
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    // Use standard popover positioning with proper menu bar alignment
+                    popover.show(relativeTo: button.bounds, of: button, preferredEdge: NSRectEdge.minY)
+                    
+                    // Activate the app to make the popover key and focused
+                    NSApp.activate(ignoringOtherApps: true)
+                }
             }
         }
     }

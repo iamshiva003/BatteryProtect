@@ -90,8 +90,8 @@ struct TitleView: View {
                 }
             }
         }
-        .onChange(of: batteryInfo.isCriticalBattery) {
-            if batteryInfo.isCriticalBattery {
+        .onChange(of: batteryInfo.isCriticalBattery) { _, isCritical in
+            if isCritical {
                 withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
                     pulseScale = 1.1
                 }

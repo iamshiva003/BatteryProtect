@@ -25,7 +25,7 @@ struct SettingsButtonView: View {
     }
     
     var body: some View {
-        Button(action: openSystemBatterySettings) {
+        Button(action: openPreferences) {
             Image(systemName: "gearshape")
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(iconColor)
@@ -47,13 +47,12 @@ struct SettingsButtonView: View {
                 isHovering = hovering
             }
         }
-        .help("Open System Battery Settings")
+        .help("Open BatteryProtect Preferences")
     }
     
-    private func openSystemBatterySettings() {
-        // Open System Preferences > Battery
-        let url = URL(string: "x-apple.systempreferences:com.apple.preference.battery")!
-        NSWorkspace.shared.open(url)
+    private func openPreferences() {
+        // Send action to open preferences window
+        NSApp.sendAction(#selector(AppDelegate.showPreferences), to: nil, from: nil)
     }
 }
 

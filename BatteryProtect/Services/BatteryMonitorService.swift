@@ -311,11 +311,7 @@ class BatteryMonitorService: ObservableObject {
     }
     
     private func getBatteryInfo() -> BatteryInfo {
-        // Use cached battery info if available and recent (reduced cache time for faster updates)
-        if let cachedInfo = getCachedBatteryInfo(), 
-           Date().timeIntervalSince(cachedInfo.lastUpdateTime) < 2.0 { // Reduced from 5.0
-            return cachedInfo
-        }
+        // Always fetch fresh battery info to stay in exact sync with system
         
         let snapshot = IOPSCopyPowerSourcesInfo().takeRetainedValue()
         let sources: NSArray = IOPSCopyPowerSourcesList(snapshot).takeRetainedValue()
@@ -326,31 +322,12 @@ class BatteryMonitorService: ObservableObject {
         
         let description = IOPSGetPowerSourceDescription(snapshot, source as CFTypeRef).takeUnretainedValue() as? [String: Any]
         
-        // Get battery level - use current capacity vs design capacity for accurate percentage
+        // Get battery level - use system current capacity percentage directly (0-100)
         var batteryLevel: Float = 1.0
         if let currentCapacity = description?[kIOPSCurrentCapacityKey as String] as? Int {
-            // For battery percentage, we should use current capacity directly
-            // The currentCapacity is already in percentage (0-100)
             batteryLevel = Float(currentCapacity) / 100.0
-            
-            // Apply calibration for charging state to match system values
-            let isCharging = description?[kIOPSIsChargingKey as String] as? Bool ?? false
-            let isCharged = description?[kIOPSIsChargedKey as String] as? Bool ?? false
-            
-            if isCharging || isCharged {
-                // When charging, add 1-2% to match system display
-                let calibrationOffset: Float = 0.015 // 1.5% offset
-                batteryLevel = min(1.0, batteryLevel + calibrationOffset)
-            }
-            
-            // Debug logging to compare with system
-            print("🔋 Battery Debug:")
-            print("   Current Capacity: \(currentCapacity)%")
-            print("   Is Charging: \(isCharging)")
-            print("   Is Charged: \(isCharged)")
-            print("   Raw Level: \(Float(currentCapacity) / 100.0)")
-            print("   Calibrated Level: \(batteryLevel)")
-            print("   Raw Values: \(description?[kIOPSCurrentCapacityKey as String] ?? "nil")")
+            // Debug: show system value we used
+            print("🔋 Battery Level (system current capacity): \(currentCapacity)%")
         }
         
         // Get power source state
@@ -417,26 +394,16 @@ class BatteryMonitorService: ObservableObject {
             lastUpdateTime: Date()
         )
         
-        // Compare with system battery percentage
+        // Optional debug comparison
         let systemBatteryPercentage = getSystemBatteryPercentage()
-        print("   System Battery: \(systemBatteryPercentage)%")
-        print("   App Battery: \(Int(batteryInfo.level * 100))%")
-        print("   Match: \(systemBatteryPercentage == Int(batteryInfo.level * 100) ? "✅" : "❌")")
-        
-        // Cache the result
-        cacheBatteryInfo(batteryInfo)
+        if systemBatteryPercentage != 0 {
+            print("System: \(systemBatteryPercentage)% | App: \(Int(batteryInfo.level * 100))%")
+        }
         
         return batteryInfo
     }
     
-    private func cacheBatteryInfo(_ batteryInfo: BatteryInfo) {
-        batteryInfoCache["lastBatteryInfo"] = batteryInfo
-        batteryInfoCache["lastUpdateTime"] = Date()
-    }
-    
-    private func getCachedBatteryInfo() -> BatteryInfo? {
-        return batteryInfoCache["lastBatteryInfo"] as? BatteryInfo
-    }
+    // Caching disabled to keep exact sync
     
     private func getSystemBatteryPercentage() -> Int {
         // Get system battery percentage using pmset command

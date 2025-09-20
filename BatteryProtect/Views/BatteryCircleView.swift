@@ -39,10 +39,10 @@ struct BatteryCircleView: View {
             
             // Battery Level Text - no animation while charging
             VStack(spacing: 1) {
-                Text("\(Int(batteryInfo.level * 100))%")
+                Text("\(batteryInfo.displayPercentage)%")
                     .font(.system(size: 24, weight: .medium))
                     .foregroundColor(powerColor)
-                    .animation(batteryInfo.isCharging ? nil : .spring(), value: batteryInfo.level)
+                    .animation(batteryInfo.isCharging ? nil : .spring(), value: batteryInfo.displayPercentage)
                 
                 Text(batteryInfo.chargingStatus)
                     .font(.caption2)

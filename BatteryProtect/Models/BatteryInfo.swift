@@ -14,14 +14,17 @@ struct BatteryInfo {
     let health: String
     let healthPercentage: Int
     let lastUpdateTime: Date
-    
+    // New: integer percentage aligned with system UI
+    let systemPercentage: Int
+
     init(
         level: Float = 1.0,
         powerSource: String = "Unknown",
         chargingStatus: String = "Unknown",
         health: String = "Unknown",
         healthPercentage: Int = 100,
-        lastUpdateTime: Date = Date()
+        lastUpdateTime: Date = Date(),
+        systemPercentage: Int = 100
     ) {
         self.level = level
         self.powerSource = powerSource
@@ -29,6 +32,7 @@ struct BatteryInfo {
         self.health = health
         self.healthPercentage = healthPercentage
         self.lastUpdateTime = lastUpdateTime
+        self.systemPercentage = systemPercentage
     }
 }
 
@@ -100,5 +104,10 @@ extension BatteryInfo {
     
     var healthTooltip: String {
         "Battery health: \(healthPercentage)% of original capacity"
+    }
+    
+    // Convenience for UI display
+    var displayPercentage: Int {
+        systemPercentage
     }
 } 

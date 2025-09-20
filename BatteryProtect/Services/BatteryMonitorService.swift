@@ -21,9 +21,9 @@ class BatteryMonitorService: ObservableObject {
     private var isMonitoring = false
     
     // Adaptive polling intervals - optimized for faster response
-    private let fastPollingInterval: TimeInterval = 1.0  // Reduced from 2.0
-    private let slowPollingInterval: TimeInterval = 5.0  // Reduced from 10.0
-    private let backgroundPollingInterval: TimeInterval = 15.0 // Reduced from 30.0
+    private let fastPollingInterval: TimeInterval = 1.0
+    private let slowPollingInterval: TimeInterval = 5.0
+    private let backgroundPollingInterval: TimeInterval = 15.0
     
     // Power source change detection
     private var lastPowerSource: String = ""
@@ -47,8 +47,6 @@ class BatteryMonitorService: ObservableObject {
         
         updateBatteryStatus()
         startAdaptivePolling()
-        
-        // Start power source change detection
         startPowerSourceMonitoring()
     }
     
@@ -62,16 +60,13 @@ class BatteryMonitorService: ObservableObject {
     }
     
     private func startAdaptivePolling() {
-        // Use adaptive polling based on system state
         let interval = getOptimalPollingInterval()
-        
         timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             self?.updateBatteryStatus()
         }
     }
     
     private func startPowerSourceMonitoring() {
-        // Monitor power source changes more frequently
         powerSourceChangeTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             self?.checkPowerSourceChange()
         }
@@ -79,13 +74,9 @@ class BatteryMonitorService: ObservableObject {
     
     private func checkPowerSourceChange() {
         let currentPowerSource = getCurrentPowerSource()
-        
         if currentPowerSource != lastPowerSource {
-            // Power source changed - update immediately
             lastPowerSource = currentPowerSource
             updateBatteryStatus()
-            
-            // Temporarily increase polling frequency for faster response
             increasePollingFrequency()
         }
     }
@@ -93,23 +84,16 @@ class BatteryMonitorService: ObservableObject {
     private func getCurrentPowerSource() -> String {
         let snapshot = IOPSCopyPowerSourcesInfo().takeRetainedValue()
         let sources: NSArray = IOPSCopyPowerSourcesList(snapshot).takeRetainedValue()
-        
-        guard let source = sources.firstObject else {
-            return "Unknown"
-        }
-        
+        guard let source = sources.firstObject else { return "Unknown" }
         let description = IOPSGetPowerSourceDescription(snapshot, source as CFTypeRef).takeUnretainedValue() as? [String: Any]
         return description?[kIOPSPowerSourceStateKey as String] as? String ?? "Unknown"
     }
     
     private func increasePollingFrequency() {
-        // Temporarily increase polling to 0.5 seconds for 10 seconds
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             self?.updateBatteryStatus()
         }
-        
-        // Reset to normal polling after 10 seconds
         DispatchQueue.main.asyncAfter(deadline: .now() + 10.0) { [weak self] in
             self?.resetToNormalPolling()
         }
@@ -117,7 +101,6 @@ class BatteryMonitorService: ObservableObject {
     
     private func resetToNormalPolling() {
         guard isMonitoring else { return }
-        
         let interval = getOptimalPollingInterval()
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
@@ -126,19 +109,14 @@ class BatteryMonitorService: ObservableObject {
     }
     
     private func getOptimalPollingInterval() -> TimeInterval {
-        // Adaptive polling based on battery state and system activity
         if let batteryInfo = lastBatteryInfo {
-            // Fast polling when battery is critical or charging
             if batteryInfo.isCriticalBattery || batteryInfo.isCharging {
                 return fastPollingInterval
             }
-            
-            // Slow polling when battery is stable
             if batteryInfo.level > 0.3 && !batteryInfo.isPluggedIn {
                 return slowPollingInterval
             }
         }
-        
         return fastPollingInterval
     }
     
@@ -147,35 +125,22 @@ class BatteryMonitorService: ObservableObject {
             if let error = error {
                 print("Notification permission error: \(error)")
             } else if granted {
-                print("✅ Notification permissions granted")
                 self.checkNotificationSettings()
-            } else {
-                print("⚠️ Notification permissions denied")
             }
         }
     }
     
     private func checkNotificationSettings() {
-        UNUserNotificationCenter.current().getNotificationSettings { settings in
-            print("📱 Notification Settings:")
-            print("   Authorization Status: \(settings.authorizationStatus.rawValue)")
-            print("   Alert Setting: \(settings.alertSetting.rawValue)")
-            print("   Sound Setting: \(settings.soundSetting.rawValue)")
-            print("   Badge Setting: \(settings.badgeSetting.rawValue)")
-            print("   Notification Center Setting: \(settings.notificationCenterSetting.rawValue)")
-            print("   Lock Screen Setting: \(settings.lockScreenSetting.rawValue)")
-        }
+        UNUserNotificationCenter.current().getNotificationSettings { _ in }
     }
     
     private func updateBatteryStatus() {
         guard isMonitoring else { return }
-        
         let newBatteryInfo = getBatteryInfo()
         let pluggedIn = newBatteryInfo.isPluggedIn
         
-        // Always update UI for power source changes
-        let shouldUpdate = shouldUpdateUI(newBatteryInfo: newBatteryInfo) || 
-                          newBatteryInfo.powerSource != (lastBatteryInfo?.powerSource ?? "")
+        let shouldUpdate = shouldUpdateUI(newBatteryInfo: newBatteryInfo) ||
+                           newBatteryInfo.powerSource != (lastBatteryInfo?.powerSource ?? "")
         
         if shouldUpdate {
             DispatchQueue.main.async { [weak self] in
@@ -183,35 +148,17 @@ class BatteryMonitorService: ObservableObject {
             }
         }
         
-        // Check for alerts
         checkBatteryAlerts(level: newBatteryInfo.level, pluggedIn: pluggedIn)
-        
-        // Update polling interval if needed
         updatePollingIntervalIfNeeded(newBatteryInfo: newBatteryInfo)
-        
         lastBatteryInfo = newBatteryInfo
     }
     
     private func shouldUpdateUI(newBatteryInfo: BatteryInfo) -> Bool {
         guard let lastInfo = lastBatteryInfo else { return true }
-        
-        // Update if battery level changed by more than 1%
         let levelDifference = abs(newBatteryInfo.level - lastInfo.level)
-        if levelDifference > 0.01 {
-            return true
-        }
-        
-        // Update if charging status changed
-        if newBatteryInfo.isCharging != lastInfo.isCharging {
-            return true
-        }
-        
-        // Update if power source changed
-        if newBatteryInfo.powerSource != lastInfo.powerSource {
-            return true
-        }
-        
-        // Update every 15 seconds regardless (reduced from 30)
+        if levelDifference > 0.01 { return true }
+        if newBatteryInfo.isCharging != lastInfo.isCharging { return true }
+        if newBatteryInfo.powerSource != lastInfo.powerSource { return true }
         let timeSinceLastUpdate = Date().timeIntervalSince(lastInfo.lastUpdateTime)
         return timeSinceLastUpdate > 15
     }
@@ -219,7 +166,6 @@ class BatteryMonitorService: ObservableObject {
     private func updatePollingIntervalIfNeeded(newBatteryInfo: BatteryInfo) {
         let currentInterval = timer?.timeInterval ?? fastPollingInterval
         let optimalInterval = getOptimalPollingInterval()
-        
         if abs(currentInterval - optimalInterval) > 0.1 {
             timer?.invalidate()
             startAdaptivePolling()
@@ -229,49 +175,40 @@ class BatteryMonitorService: ObservableObject {
     private func checkBatteryAlerts(level: Float, pluggedIn: Bool) {
         let now = Date()
         let timeSinceLastAlert = now.timeIntervalSince(lastAlertTime)
-        
         let powerSourceChanged = pluggedIn != lastBatteryState.pluggedIn
         
-        // Get settings values with defaults
         let enableLowBatteryAlerts = UserDefaults.standard.object(forKey: "enableLowBatteryAlerts") as? Bool ?? true
         let enableHighBatteryAlerts = UserDefaults.standard.object(forKey: "enableHighBatteryAlerts") as? Bool ?? true
         let lowBatteryThreshold = UserDefaults.standard.object(forKey: "lowBatteryThreshold") as? Double ?? 20.0
         let highBatteryThreshold = UserDefaults.standard.object(forKey: "highBatteryThreshold") as? Double ?? 80.0
         
-        // Convert thresholds to Float (0.0 to 1.0)
         let lowThreshold = Float(lowBatteryThreshold / 100.0)
         let highThreshold = Float(highBatteryThreshold / 100.0)
         
-        // Check if we should show any alert
         var shouldShowAlert = false
         var message = ""
         var title = ""
         
-        // Only show alert if enough time has passed since last alert
         if timeSinceLastAlert > 30 {
-            // Check for low battery alert
             if enableLowBatteryAlerts && level <= lowThreshold {
                 title = "⚠️ Low Battery"
-                message = "Battery level is low: \(Int(level * 100))% (threshold: \(Int(lowBatteryThreshold))%)"
+                message = "Battery level is low: \(Int((level * 100).rounded()))% (threshold: \(Int(lowBatteryThreshold))%)"
                 shouldShowAlert = true
-            }
-            // Check for high battery alert (only when plugged in)
-            else if enableHighBatteryAlerts && level >= highThreshold && pluggedIn {
+            } else if enableHighBatteryAlerts && level >= highThreshold && pluggedIn {
                 title = "🔌 High Battery"
-                message = "Battery level is high: \(Int(level * 100))% (threshold: \(Int(highBatteryThreshold))%) - Consider unplugging to preserve battery health"
+                message = "Battery level is high: \(Int((level * 100).rounded()))% (threshold: \(Int(highBatteryThreshold))%) - Consider unplugging to preserve battery health"
                 shouldShowAlert = true
             }
         }
         
-        // Show power source change alert immediately (but only if it's different from regular alerts)
         if powerSourceChanged && !shouldShowAlert && timeSinceLastAlert > 5 {
             if enableLowBatteryAlerts && level <= lowThreshold {
                 title = "⚠️ Low Battery"
-                message = "Battery level is low: \(Int(level * 100))% (threshold: \(Int(lowBatteryThreshold))%)"
+                message = "Battery level is low: \(Int((level * 100).rounded()))% (threshold: \(Int(lowBatteryThreshold))%)"
                 shouldShowAlert = true
             } else if enableHighBatteryAlerts && level >= highThreshold && pluggedIn {
                 title = "🔌 High Battery"
-                message = "Battery level is high: \(Int(level * 100))% (threshold: \(Int(highBatteryThreshold))%) - Consider unplugging to preserve battery health"
+                message = "Battery level is high: \(Int((level * 100).rounded()))% (threshold: \(Int(highBatteryThreshold))%) - Consider unplugging to preserve battery health"
                 shouldShowAlert = true
             }
         }
@@ -290,55 +227,67 @@ class BatteryMonitorService: ObservableObject {
             content.title = title
             content.body = message
             content.sound = .default
-            
-            // Ensure notification is delivered even when app is active
             content.interruptionLevel = .timeSensitive
             
-            let request = UNNotificationRequest(
-                identifier: UUID().uuidString,
-                content: content,
-                trigger: nil
-            )
-            
-            UNUserNotificationCenter.current().add(request) { error in
-                if let error = error {
-                    print("Notification error: \(error)")
-                } else {
-                    print("✅ Notification sent: \(title) - \(message)")
-                }
-            }
+            let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+            UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
         }
     }
     
     private func getBatteryInfo() -> BatteryInfo {
-        // Always fetch fresh battery info to stay in exact sync with system
-        
         let snapshot = IOPSCopyPowerSourcesInfo().takeRetainedValue()
         let sources: NSArray = IOPSCopyPowerSourcesList(snapshot).takeRetainedValue()
         
-        guard let source = sources.firstObject else {
+        // Prefer InternalBattery
+        var selectedSource: CFTypeRef?
+        for case let source as CFTypeRef in sources {
+            if let desc = IOPSGetPowerSourceDescription(snapshot, source).takeUnretainedValue() as? [String: Any],
+               let type = desc[kIOPSTypeKey as String] as? String,
+               type == kIOPSInternalBatteryType {
+                selectedSource = source
+                break
+            }
+        }
+        if selectedSource == nil {
+            selectedSource = (sources.firstObject as AnyObject?) as? CFTypeRef
+        }
+        
+        guard let source = selectedSource,
+              let description = IOPSGetPowerSourceDescription(snapshot, source).takeUnretainedValue() as? [String: Any] else {
             return BatteryInfo()
         }
         
-        let description = IOPSGetPowerSourceDescription(snapshot, source as CFTypeRef).takeUnretainedValue() as? [String: Any]
-        
-        // Get battery level - use system current capacity percentage directly (0-100)
-        var batteryLevel: Float = 1.0
-        if let currentCapacity = description?[kIOPSCurrentCapacityKey as String] as? Int {
-            batteryLevel = Float(currentCapacity) / 100.0
-            // Debug: show system value we used
-            print("🔋 Battery Level (system current capacity): \(currentCapacity)%")
+        // Compute integer percentage from IOKit using current and max capacity if available
+        var ioKitPercent: Int = 100
+        if let current = description[kIOPSCurrentCapacityKey as String] as? Int,
+           let max = description[kIOPSMaxCapacityKey as String] as? Int,
+           max > 0 {
+            ioKitPercent = Int((Double(current) / Double(max) * 100.0).rounded())
+        } else if let currentAsPercent = description[kIOPSCurrentCapacityKey as String] as? Int {
+            ioKitPercent = currentAsPercent
         }
         
-        // Get power source state
-        let powerSourceState = description?[kIOPSPowerSourceStateKey as String] as? String ?? "Unknown"
+        // Reconcile with pmset integer percentage (matches System Settings)
+        let pmsetPercent = getSystemBatteryPercentage()
+        let chosenPercent: Int
+        if pmsetPercent > 0 && abs(pmsetPercent - ioKitPercent) >= 1 {
+            chosenPercent = pmsetPercent
+        } else {
+            chosenPercent = ioKitPercent
+        }
         
-        // Get charging status
-        let isCharging = description?[kIOPSIsChargingKey as String] as? Bool ?? false
-        let isCharged = description?[kIOPSIsChargedKey as String] as? Bool ?? false
-        let isPresent = description?["IsPresent"] as? Bool ?? true
+        // Derive level from the chosen integer to keep UI and arcs consistent
+        let batteryLevel = max(0.0, min(1.0, Float(chosenPercent) / 100.0))
         
-        // Determine charging status string
+        // Power source state
+        let powerSourceState = description[kIOPSPowerSourceStateKey as String] as? String ?? "Unknown"
+        
+        // Charging flags
+        let isCharging = description[kIOPSIsChargingKey as String] as? Bool ?? false
+        let isCharged = description[kIOPSIsChargedKey as String] as? Bool ?? false
+        let isPresent = description["IsPresent"] as? Bool ?? true
+        
+        // Charging status string
         let chargingStatus: String
         if !isPresent {
             chargingStatus = "No Battery"
@@ -354,15 +303,9 @@ class BatteryMonitorService: ObservableObject {
             chargingStatus = "Unknown"
         }
         
-        // Get battery health percentage
-        let healthPercentage: Int
-        if let maxCapacity = description?[kIOPSMaxCapacityKey as String] as? Int {
-            healthPercentage = maxCapacity
-        } else {
-            healthPercentage = 100
-        }
+        // Health percentage (IOKit MaxCapacity is already a percentage of design capacity on macOS battery API)
+        let healthPercentage: Int = (description[kIOPSMaxCapacityKey as String] as? Int) ?? 100
         
-        // Get battery health description
         let health: String
         if healthPercentage >= 90 {
             health = "Excellent"
@@ -374,7 +317,6 @@ class BatteryMonitorService: ObservableObject {
             health = "Poor"
         }
         
-        // Format power source
         let formattedPowerSource: String
         switch powerSourceState {
         case kIOPSACPowerValue:
@@ -391,60 +333,40 @@ class BatteryMonitorService: ObservableObject {
             chargingStatus: chargingStatus,
             health: health,
             healthPercentage: healthPercentage,
-            lastUpdateTime: Date()
+            lastUpdateTime: Date(),
+            systemPercentage: chosenPercent
         )
-        
-        // Optional debug comparison
-        let systemBatteryPercentage = getSystemBatteryPercentage()
-        if systemBatteryPercentage != 0 {
-            print("System: \(systemBatteryPercentage)% | App: \(Int(batteryInfo.level * 100))%")
-        }
         
         return batteryInfo
     }
     
-    // Caching disabled to keep exact sync
-    
+    // Parse system battery percentage using pmset
     private func getSystemBatteryPercentage() -> Int {
-        // Get system battery percentage using pmset command
         let task = Process()
         task.launchPath = "/usr/bin/pmset"
         task.arguments = ["-g", "batt"]
-        
         let pipe = Pipe()
         task.standardOutput = pipe
         
         do {
             try task.run()
             task.waitUntilExit()
-            
             let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            if let output = String(data: data, encoding: .utf8) {
-                // Parse the output to extract battery percentage
-                let lines = output.components(separatedBy: .newlines)
-                for line in lines {
-                    if line.contains("%") && line.contains("InternalBattery") {
-                        // Extract percentage from line like " -InternalBattery-0 (id=123456)	100%; charged; 0:00 remaining present: true"
-                        let components = line.components(separatedBy: ";")
-                        if let firstComponent = components.first {
-                            // Look for percentage pattern: number followed by %
-                            let words = firstComponent.components(separatedBy: .whitespaces)
-                            for word in words {
-                                if word.contains("%") {
-                                    let percentageString = word.replacingOccurrences(of: "%", with: "")
-                                    if let percentage = Int(percentageString) {
-                                        return percentage
-                                    }
-                                }
-                            }
-                        }
+            guard let output = String(data: data, encoding: .utf8) else { return 0 }
+            // Look for "xx%;"
+            // Example: " -InternalBattery-0 (id=1234567) 87%; discharging; (no estimate) present: true"
+            let tokens = output.components(separatedBy: CharacterSet.whitespacesAndNewlines)
+            for token in tokens {
+                if token.hasSuffix("%;") || token.hasSuffix("%") {
+                    let trimmed = token.trimmingCharacters(in: CharacterSet(charactersIn: ";"))
+                    if let percent = Int(trimmed.replacingOccurrences(of: "%", with: "")) {
+                        return max(0, min(100, percent))
                     }
                 }
             }
         } catch {
-            print("Error getting system battery percentage: \(error)")
+            // Ignore errors; fallback will be used
         }
-        
         return 0
     }
 } 

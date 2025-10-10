@@ -183,6 +183,21 @@ class StatusBarService: NSObject, ObservableObject {
         
         menu.addItem(NSMenuItem.separator())
         
+        // App actions (Preferences / About / Help)
+        let preferencesItem = NSMenuItem(title: "Preferences…", action: #selector(openPreferencesFromMenu), keyEquivalent: ",")
+        preferencesItem.target = self
+        menu.addItem(preferencesItem)
+        
+        let aboutItem = NSMenuItem(title: "About BatteryProtect", action: #selector(showAboutFromMenu), keyEquivalent: "")
+        aboutItem.target = self
+        menu.addItem(aboutItem)
+        
+        let helpItem = NSMenuItem(title: "BatteryProtect Help", action: #selector(showHelpFromMenu), keyEquivalent: "?")
+        helpItem.target = self
+        menu.addItem(helpItem)
+        
+        menu.addItem(NSMenuItem.separator())
+        
         // Open in Window Mode
         let openWindowItem = NSMenuItem(title: "Open in Window", action: #selector(openInWindowMode), keyEquivalent: "w")
         openWindowItem.target = self
@@ -204,6 +219,18 @@ class StatusBarService: NSObject, ObservableObject {
         if let event = NSApp.currentEvent, button.window != nil {
             NSMenu.popUpContextMenu(menu, with: event, for: button)
         }
+    }
+    
+    @objc private func openPreferencesFromMenu() {
+        NSApp.sendAction(#selector(AppDelegate.showPreferences), to: nil, from: nil)
+    }
+    
+    @objc private func showAboutFromMenu() {
+        NSApp.sendAction(#selector(AppDelegate.showAbout), to: nil, from: nil)
+    }
+    
+    @objc private func showHelpFromMenu() {
+        NSApp.sendAction(#selector(AppDelegate.showHelp), to: nil, from: nil)
     }
     
     @objc func openInWindowMode() {
@@ -396,4 +423,4 @@ extension StatusBarService: NSPopoverDelegate {
         // Allow the popover to close when clicking outside
         return true
     }
-} 
+}

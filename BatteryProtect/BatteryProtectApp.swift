@@ -14,6 +14,7 @@ struct BatteryProtectApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     var body: some Scene {
+        // Keep only a Settings scene. With LSUIElement=true, this won’t create any app menu or windows.
         Settings {
             EmptyView()
         }
@@ -43,8 +44,13 @@ class AppDelegate: NSObject, AppDelegateProtocol {
     }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Set up the application menu
-        appMenuService.setupApplicationMenu()
+        // Ensure we behave as a menu bar app at runtime as well.
+        // LSUIElement in Info.plist remains the primary mechanism.
+        NSApp.setActivationPolicy(.accessory)
+        NSApp.mainMenu = nil
+        
+        // Do NOT set up a main menu for a menu bar–only app
+        // appMenuService.setupApplicationMenu()
         
         // Set up signal handlers for proper termination
         signalHandlerService.setupSignalHandlers()
@@ -65,7 +71,7 @@ class AppDelegate: NSObject, AppDelegateProtocol {
         print("   • Reduced UI updates")
         print("   • Performance monitoring enabled")
         print("   • Force quit support enabled")
-        print("   • Application menu with settings enabled")
+        print("   • Application menu disabled (agent/app accessory)")
     }
     
     func applicationWillTerminate(_ notification: Notification) {
@@ -88,12 +94,6 @@ class AppDelegate: NSObject, AppDelegateProtocol {
         // Reduce monitoring when app is not active
         // Keep basic monitoring but reduce frequency
     }
-    
-
-    
-
-    
-
     
     private func cleanup() {
         // Stop performance monitoring
@@ -119,7 +119,7 @@ class AppDelegate: NSObject, AppDelegateProtocol {
 
 // MARK: - AppMenuServiceDelegate
 extension AppDelegate: AppMenuServiceDelegate {
-    func showAbout() {
+    @objc func showAbout() {
         let alert = NSAlert()
         alert.messageText = "About BatteryProtect"
         alert.informativeText = "BatteryProtect v1.0\n\nA macOS status bar application that monitors battery health and provides intelligent alerts to preserve battery longevity.\n\nCreated by Shivakumar Patil\n© 2025 All rights reserved."
@@ -174,7 +174,7 @@ extension AppDelegate: AppMenuServiceDelegate {
         statusBarService?.openInWindowMode()
     }
     
-    func showHelp() {
+    @objc func showHelp() {
         // Open help documentation or show help dialog
         let alert = NSAlert()
         alert.messageText = "BatteryProtect Help"
@@ -186,7 +186,7 @@ extension AppDelegate: AppMenuServiceDelegate {
     
     func openBatterySettings() {
         // Open system battery settings with safety check
-        DispatchQueue.main.async { [weak self] in
+        DispatchQueue.main.async {
             if let url = URL(string: "x-apple.systempreferences:com.apple.preference.battery") {
                 NSWorkspace.shared.open(url)
             }
@@ -210,5 +210,3 @@ extension AppDelegate: SignalHandlerServiceDelegate {
         StatusBarService.handleForceQuit()
     }
 }
-
-

@@ -19,6 +19,11 @@ struct BatteryCircleView: View {
         Color.backgroundColor(for: colorScheme)
     }
     
+    // Use the exact system integer for all arc math to avoid any drift
+    private var exactFraction: CGFloat {
+        CGFloat(Float(batteryInfo.displayPercentage) / 100.0)
+    }
+    
     var body: some View {
         ZStack {
             // Background Circle
@@ -26,30 +31,30 @@ struct BatteryCircleView: View {
                 .stroke(backgroundColor, lineWidth: 8)
                 .frame(width: 100, height: 100)
             
-            // Progress Circle - no animation while charging
+            // Progress Circle - driven by exact system integer percentage
             Circle()
-                .trim(from: 0, to: CGFloat(batteryInfo.level))
+                .trim(from: 0, to: exactFraction)
                 .stroke(
                     powerColor,
                     style: StrokeStyle(lineWidth: 8, lineCap: .round)
                 )
                 .frame(width: 100, height: 100)
                 .rotationEffect(.degrees(-90))
-                .animation(batteryInfo.isCharging ? nil : .spring(dampingFraction: 0.7), value: batteryInfo.level)
+                // Disable animation to prevent interpolation artifacts
+                .animation(nil, value: batteryInfo.displayPercentage)
             
-            // Battery Level Text - no animation while charging
+            // Battery Level Text - same integer
             VStack(spacing: 1) {
                 Text("\(batteryInfo.displayPercentage)%")
                     .font(.system(size: 24, weight: .medium))
                     .foregroundColor(powerColor)
-                    .animation(batteryInfo.isCharging ? nil : .spring(), value: batteryInfo.displayPercentage)
+                    .animation(nil, value: batteryInfo.displayPercentage)
                 
                 Text(batteryInfo.chargingStatus)
                     .font(.caption2)
                     .foregroundColor(Color.secondaryTextColor(for: colorScheme))
-                    .animation(batteryInfo.isCharging ? nil : .easeInOut, value: batteryInfo.chargingStatus)
+                    .animation(nil, value: batteryInfo.chargingStatus)
             }
         }
-        
     }
-} 
+}

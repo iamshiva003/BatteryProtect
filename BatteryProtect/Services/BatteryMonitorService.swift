@@ -252,31 +252,32 @@ class BatteryMonitorService: ObservableObject {
             selectedSource = (sources.firstObject as AnyObject?) as? CFTypeRef
         }
         
-        guard let source = selectedSource,
-              let description = IOPSGetPowerSourceDescription(snapshot, source).takeUnretainedValue() as? [String: Any] else {
-            return BatteryInfo()
+        // Gather IOKit details (for status strings and fallbacks)
+        var description: [String: Any] = [:]
+        if let source = selectedSource,
+           let desc = IOPSGetPowerSourceDescription(snapshot, source).takeUnretainedValue() as? [String: Any] {
+            description = desc
         }
         
-        // Compute integer percentage from IOKit using current and max capacity if available
-        var ioKitPercent: Int = 100
-        if let current = description[kIOPSCurrentCapacityKey as String] as? Int,
-           let max = description[kIOPSMaxCapacityKey as String] as? Int,
-           max > 0 {
-            ioKitPercent = Int((Double(current) / Double(max) * 100.0).rounded())
-        } else if let currentAsPercent = description[kIOPSCurrentCapacityKey as String] as? Int {
-            ioKitPercent = currentAsPercent
+        // Single source of truth: pmset percentage
+        var chosenPercent: Int = getSystemBatteryPercentage()
+        
+        // Fallback to IOKit-derived percentage if pmset failed
+        if chosenPercent <= 0 || chosenPercent > 100 {
+            if let current = description[kIOPSCurrentCapacityKey as String] as? Int,
+               let max = description[kIOPSMaxCapacityKey as String] as? Int,
+               max > 0 {
+                chosenPercent = Int((Double(current) / Double(max) * 100.0).rounded())
+            } else if let currentAsPercent = description[kIOPSCurrentCapacityKey as String] as? Int {
+                chosenPercent = currentAsPercent
+            } else if let last = lastBatteryInfo?.systemPercentage {
+                chosenPercent = last
+            } else {
+                chosenPercent = 100
+            }
         }
         
-        // Reconcile with pmset integer percentage (matches System Settings)
-        let pmsetPercent = getSystemBatteryPercentage()
-        let chosenPercent: Int
-        if pmsetPercent > 0 && abs(pmsetPercent - ioKitPercent) >= 1 {
-            chosenPercent = pmsetPercent
-        } else {
-            chosenPercent = ioKitPercent
-        }
-        
-        // Derive level from the chosen integer to keep UI and arcs consistent
+        // Derive level exactly from chosenPercent to keep UI and arcs consistent with system
         let batteryLevel = max(0.0, min(1.0, Float(chosenPercent) / 100.0))
         
         // Power source state
@@ -334,39 +335,37 @@ class BatteryMonitorService: ObservableObject {
             health: health,
             healthPercentage: healthPercentage,
             lastUpdateTime: Date(),
-            systemPercentage: chosenPercent
+            systemPercentage: max(0, min(100, chosenPercent))
         )
         
         return batteryInfo
     }
     
-    // Parse system battery percentage using pmset
+    // Parse system battery percentage using pmset as sole source of truth
     private func getSystemBatteryPercentage() -> Int {
         let task = Process()
         task.launchPath = "/usr/bin/pmset"
         task.arguments = ["-g", "batt"]
         let pipe = Pipe()
         task.standardOutput = pipe
+        task.standardError = Pipe()
         
         do {
             try task.run()
             task.waitUntilExit()
             let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            guard let output = String(data: data, encoding: .utf8) else { return 0 }
-            // Look for "xx%;"
-            // Example: " -InternalBattery-0 (id=1234567) 87%; discharging; (no estimate) present: true"
-            let tokens = output.components(separatedBy: CharacterSet.whitespacesAndNewlines)
-            for token in tokens {
-                if token.hasSuffix("%;") || token.hasSuffix("%") {
-                    let trimmed = token.trimmingCharacters(in: CharacterSet(charactersIn: ";"))
-                    if let percent = Int(trimmed.replacingOccurrences(of: "%", with: "")) {
-                        return max(0, min(100, percent))
-                    }
+            guard let output = String(data: data, encoding: .utf8) else { return lastBatteryInfo?.systemPercentage ?? 0 }
+            
+            // Robust regex: first number followed by % anywhere in the output
+            if let match = output.range(of: #"(\d{1,3})%"#, options: .regularExpression) {
+                let numberString = String(output[match]).replacingOccurrences(of: "%", with: "")
+                if let percent = Int(numberString) {
+                    return max(0, min(100, percent))
                 }
             }
         } catch {
-            // Ignore errors; fallback will be used
+            // Ignore errors; fallback will be used by caller
         }
-        return 0
+        return lastBatteryInfo?.systemPercentage ?? 0
     }
-} 
+}

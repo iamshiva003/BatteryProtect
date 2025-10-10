@@ -162,12 +162,12 @@ class StatusBarService: NSObject, ObservableObject {
         
         // Battery Info Section - with safety checks
         if let batteryMonitor = batteryMonitor {
-            let batteryInfo = batteryMonitor.batteryInfo
-            let batteryTitle = NSMenuItem(title: "Battery: \(Int(batteryInfo.level * 100))%", action: nil, keyEquivalent: "")
+            let info = batteryMonitor.batteryInfo
+            let batteryTitle = NSMenuItem(title: "Battery: \(info.displayPercentage)%", action: nil, keyEquivalent: "")
             batteryTitle.isEnabled = false
             menu.addItem(batteryTitle)
             
-            let powerSourceTitle = NSMenuItem(title: "Source: \(batteryInfo.powerSource)", action: nil, keyEquivalent: "")
+            let powerSourceTitle = NSMenuItem(title: "Source: \(info.powerSource)", action: nil, keyEquivalent: "")
             powerSourceTitle.isEnabled = false
             menu.addItem(powerSourceTitle)
         } else {
@@ -252,7 +252,7 @@ class StatusBarService: NSObject, ObservableObject {
             contentRect: NSRect(x: 0, y: 0, width: 400, height: 300),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
-            defer: true  // Defer window creation to avoid immediate issues
+            defer: true
         )
         
         window.title = "BatteryProtect"
@@ -273,7 +273,7 @@ class StatusBarService: NSObject, ObservableObject {
     
     @objc private func openBatterySettings() {
         // Open system battery settings with safety check
-        DispatchQueue.main.async { [weak self] in
+        DispatchQueue.main.async {
             if let url = URL(string: "x-apple.systempreferences:com.apple.preference.battery") {
                 NSWorkspace.shared.open(url)
             }
@@ -292,32 +292,32 @@ class StatusBarService: NSObject, ObservableObject {
     private func updateStatusBarIcon() {
         guard let button = statusItem?.button else { return }
         
-        let batteryInfo = batteryMonitor?.batteryInfo ?? BatteryInfo()
+        let info = batteryMonitor?.batteryInfo ?? BatteryInfo()
         
         // Always update for power source changes, otherwise use smart updates
-        let shouldUpdate = shouldUpdateIcon(batteryInfo: batteryInfo) || 
-                          batteryInfo.powerSource != (lastBatteryInfo?.powerSource ?? "")
+        let shouldUpdate = shouldUpdateIcon(batteryInfo: info) ||
+                           info.powerSource != (lastBatteryInfo?.powerSource ?? "")
         
         if shouldUpdate {
-            let isCharging = batteryInfo.isPluggedIn
+            let isCharging = info.isPluggedIn
             
             // Update icon based on battery level and charging status
             let icon: String
             if isCharging {
                 icon = "🔌"
-            } else if batteryInfo.level <= 0.2 {
+            } else if info.level <= 0.2 {
                 icon = "🔴"
-            } else if batteryInfo.level <= 0.5 {
+            } else if info.level <= 0.5 {
                 icon = "🟡"
             } else {
                 icon = "🔋"
             }
             
             button.title = icon
-            button.toolTip = "Battery: \(Int(batteryInfo.level * 100))% - \(batteryInfo.powerSource)"
+            button.toolTip = "Battery: \(info.displayPercentage)% - \(info.powerSource)"
             
             lastIconUpdate = Date()
-            lastBatteryInfo = batteryInfo
+            lastBatteryInfo = info
         }
     }
     

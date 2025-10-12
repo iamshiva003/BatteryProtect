@@ -16,6 +16,8 @@ struct BatteryInfo {
     let lastUpdateTime: Date
     // New: integer percentage aligned with system UI
     let systemPercentage: Int
+    // New: total battery cycle count (optional if unavailable)
+    let cycleCount: Int?
 
     init(
         level: Float = 1.0,
@@ -24,7 +26,8 @@ struct BatteryInfo {
         health: String = "Unknown",
         healthPercentage: Int = 100,
         lastUpdateTime: Date = Date(),
-        systemPercentage: Int = 100
+        systemPercentage: Int = 100,
+        cycleCount: Int? = nil
     ) {
         self.level = level
         self.powerSource = powerSource
@@ -33,6 +36,7 @@ struct BatteryInfo {
         self.healthPercentage = healthPercentage
         self.lastUpdateTime = lastUpdateTime
         self.systemPercentage = systemPercentage
+        self.cycleCount = cycleCount
     }
 }
 

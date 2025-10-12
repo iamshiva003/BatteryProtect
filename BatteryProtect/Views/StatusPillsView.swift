@@ -12,6 +12,7 @@ struct StatusPillsView: View {
     let colorScheme: ColorScheme
     @State private var isHovering: Bool = false
     @State private var isHealthHovering: Bool = false
+    @State private var isCyclesHovering: Bool = false
     
     private var powerColor: Color {
         Color.batteryColor(for: batteryInfo, colorScheme: colorScheme)
@@ -27,6 +28,15 @@ struct StatusPillsView: View {
     
     private var healthPillBackgroundColor: Color {
         Color.pillBackgroundColor(for: healthColor, colorScheme: colorScheme)
+    }
+    
+    // Cycles color follows the same opacity-from-base pattern as health
+    private var cyclesColor: Color {
+        Color.cyclesColor(for: batteryInfo, baseColor: powerColor)
+    }
+    
+    private var cyclesPillBackgroundColor: Color {
+        Color.pillBackgroundColor(for: cyclesColor, colorScheme: colorScheme)
     }
     
     var body: some View {
@@ -85,6 +95,42 @@ struct StatusPillsView: View {
                 }
             }
             .help(batteryInfo.healthTooltip)
+            
+            // Cycle Count Pill (exact same animation pattern as health)
+            if let cycles = batteryInfo.cycleCount {
+                HStack(spacing: 3) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.caption2)
+                    Text("\(cycles) cycles")
+                        .font(.caption2)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(
+                    Capsule()
+                        .fill(cyclesPillBackgroundColor)
+                        .overlay(
+                            Capsule()
+                                .stroke(Color.pillBorderColor(for: cyclesColor, colorScheme: colorScheme), lineWidth: 1)
+                        )
+                        .scaleEffect(isCyclesHovering ? 1.05 : 1.0)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isCyclesHovering)
+                )
+                .foregroundColor(cyclesColor)
+                .animation(.easeInOut, value: batteryInfo.cycleCount)
+                .transition(
+                    .asymmetric(
+                        insertion: .opacity.combined(with: .move(edge: .top)).combined(with: .scale(scale: 0.95)),
+                        removal: .opacity.combined(with: .move(edge: .top)).combined(with: .scale(scale: 0.95))
+                    )
+                )
+                .onHover { hovering in
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        isCyclesHovering = hovering
+                    }
+                }
+                .help("Total battery cycle count")
+            }
         }
     }
-} 
+}

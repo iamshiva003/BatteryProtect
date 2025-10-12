@@ -7,6 +7,7 @@
 
 import Foundation
 import IOKit.ps
+import IOKit
 import AppKit
 import UserNotifications
 
@@ -298,6 +299,7 @@ class BatteryMonitorService: ObservableObject {
         // Read capacity values
         let currentCapacity = description[kIOPSCurrentCapacityKey as String] as? Int
         let maxCapacity = description[kIOPSMaxCapacityKey as String] as? Int
+        let designCapacity = description[kIOPSDesignCapacityKey as String] as? Int
         
         // Power and charging flags
         let powerSourceState = description[kIOPSPowerSourceStateKey as String] as? String ?? "Unknown"
@@ -305,6 +307,9 @@ class BatteryMonitorService: ObservableObject {
         let isCharging = description[kIOPSIsChargingKey as String] as? Bool ?? false
         let isCharged = description[kIOPSIsChargedKey as String] as? Bool ?? false
         let isPresent = description["IsPresent"] as? Bool ?? true
+        
+        // Cycle count (robust, multi-source)
+        let cycleCount = readCycleCount(fromDescription: description) ?? fetchCycleCountFromIORegistry() ?? lastBatteryInfo?.cycleCount
         
         // Compute percentage using IOKit only, matching system rounding
         var percent: Int
@@ -349,8 +354,18 @@ class BatteryMonitorService: ObservableObject {
             chargingStatus = "Unknown"
         }
         
-        // Health proxy (simplified)
-        let healthPercentage: Int = (description[kIOPSMaxCapacityKey as String] as? Int) ?? 100
+        // Health percentage: MaxCapacity / DesignCapacity if both available; otherwise fallback
+        let healthPercentage: Int = {
+            if let max = maxCapacity, let design = designCapacity, design > 0 {
+                return Int((Double(max) / Double(design) * 100.0).rounded())
+            }
+            // Fallback: if only max provided, treat as percentage-like but clamp 100
+            if let max = maxCapacity {
+                return min(max, 100)
+            }
+            return 100
+        }()
+        
         let health: String
         if healthPercentage >= 90 {
             health = "Excellent"
@@ -379,9 +394,56 @@ class BatteryMonitorService: ObservableObject {
             health: health,
             healthPercentage: healthPercentage,
             lastUpdateTime: Date(),
-            systemPercentage: percent
+            systemPercentage: percent,
+            cycleCount: cycleCount
         )
         
         return info
     }
+    
+    // MARK: - Cycle count from IOPS description (some systems expose it here)
+    private func readCycleCount(fromDescription dict: [String: Any]) -> Int? {
+        // Try common variants
+        if let v = dict["Cycle Count"] as? Int { return v }
+        if let v = dict["CycleCount"] as? Int { return v }
+        if let v = dict["Cycle Count"] as? NSNumber { return v.intValue }
+        if let v = dict["CycleCount"] as? NSNumber { return v.intValue }
+        return nil
+    }
+    
+    // MARK: - Cycle count via IORegistry (most reliable)
+    private func fetchCycleCountFromIORegistry() -> Int? {
+        // Try AppleSmartBattery first
+        if let count = fetchCycleCount(serviceName: "AppleSmartBattery") {
+            return count
+        }
+        // Some systems expose via AppleSmartBatteryManager
+        if let count = fetchCycleCount(serviceName: "AppleSmartBatteryManager") {
+            return count
+        }
+        return nil
+    }
+    
+    private func fetchCycleCount(serviceName: String) -> Int? {
+        guard let matching = IOServiceMatching(serviceName) else { return nil }
+        var iterator: io_iterator_t = 0
+        let result = IOServiceGetMatchingServices(kIOMainPortDefault, matching, &iterator)
+        if result != KERN_SUCCESS { return nil }
+        defer { IOObjectRelease(iterator) }
+        
+        var service = IOIteratorNext(iterator)
+        while service != 0 {
+            defer { IOObjectRelease(service) }
+            if let cfValue = IORegistryEntryCreateCFProperty(service, "CycleCount" as CFString, kCFAllocatorDefault, 0)?.takeRetainedValue() {
+                if let number = cfValue as? NSNumber {
+                    return number.intValue
+                } else if let intValue = cfValue as? Int {
+                    return intValue
+                }
+            }
+            service = IOIteratorNext(iterator)
+        }
+        return nil
+    }
 }
+

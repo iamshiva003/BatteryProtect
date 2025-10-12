@@ -32,6 +32,25 @@ extension Color {
         }
     }
     
+    // New: cycles color that follows the same pattern (vary opacity from base color)
+    // Thresholds align with typical battery lifespan guidance (approx. 1000 cycles).
+    static func cyclesColor(for batteryInfo: BatteryInfo, baseColor: Color) -> Color {
+        guard let cycles = batteryInfo.cycleCount else {
+            // If unknown, use a subdued variant of the base color
+            return baseColor.opacity(0.6)
+        }
+        switch cycles {
+        case ..<500:
+            return baseColor
+        case 500..<800:
+            return baseColor.opacity(0.8)
+        case 800..<1000:
+            return baseColor.opacity(0.6)
+        default:
+            return baseColor.opacity(0.4)
+        }
+    }
+    
     static func backgroundColor(for colorScheme: ColorScheme) -> Color {
         colorScheme == .dark ? Color.white.opacity(0.18) : Color.black.opacity(0.08)
     }
@@ -63,4 +82,4 @@ extension Color {
     static func pillBorderColor(for baseColor: Color, colorScheme: ColorScheme) -> Color {
         baseColor.opacity(colorScheme == .dark ? 0.4 : 0.25)
     }
-} 
+}

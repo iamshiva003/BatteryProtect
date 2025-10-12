@@ -28,13 +28,13 @@ struct ContentView: View {
                     .opacity(isAppearing ? 1 : 0)
                     .animation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.2), value: isAppearing)
                 
-                // Status Pills Row
+                // Status Pills Row (now includes cycles when available)
                 StatusPillsView(batteryInfo: batteryMonitor.batteryInfo, colorScheme: colorScheme)
                     .offset(y: isAppearing ? 0 : 20)
                     .opacity(isAppearing ? 1 : 0)
                     .animation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.3), value: isAppearing)
                 
-                // Last Update
+                // Last Update - minimal time only, theme-aware
                 LastUpdateView(batteryInfo: batteryMonitor.batteryInfo, colorScheme: colorScheme)
                     .offset(y: isAppearing ? 0 : 20)
                     .opacity(isAppearing ? 1 : 0)

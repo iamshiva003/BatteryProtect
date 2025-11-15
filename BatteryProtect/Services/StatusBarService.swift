@@ -55,7 +55,8 @@ class StatusBarService: NSObject, ObservableObject {
             button.target = self
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
             button.imagePosition = .imageOnly
-            button.imageScaling = .scaleProportionallyDown
+            // Allow proportional up or down scaling for a slightly larger symbol presentation
+            button.imageScaling = .scaleProportionallyUpOrDown
             applyStatusButtonAppearance(for: BatteryInfo(), on: button) // initial placeholder
         }
         
@@ -269,7 +270,8 @@ class StatusBarService: NSObject, ObservableObject {
         }()
         let preferredName = info.isPluggedIn ? "\(symbolBase).bolt" : symbolBase
         let fallbackName = info.isPluggedIn ? "bolt.fill" : "bolt.circle"
-        let config = NSImage.SymbolConfiguration(pointSize: 16, weight: .regular)
+        // Increase the point size to make the icon larger in the menu bar
+        let config = NSImage.SymbolConfiguration(pointSize: 20, weight: .regular)
         if let img = NSImage(systemSymbolName: preferredName, accessibilityDescription: nil)?.withSymbolConfiguration(config) {
             img.isTemplate = true
             return img

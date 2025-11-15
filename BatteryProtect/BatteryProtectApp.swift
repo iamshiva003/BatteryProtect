@@ -44,25 +44,14 @@ class AppDelegate: NSObject, AppDelegateProtocol {
     }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Ensure we behave as a menu bar app at runtime as well.
-        // LSUIElement in Info.plist remains the primary mechanism.
         NSApp.setActivationPolicy(.accessory)
         NSApp.mainMenu = nil
         
-        // Do NOT set up a main menu for a menu bar–only app
-        // appMenuService.setupApplicationMenu()
-        
-        // Set up signal handlers for proper termination
         signalHandlerService.setupSignalHandlers()
-        
-        // Start performance monitoring
         PerformanceMonitor.shared.startMonitoring()
         
-        // Initialize services
         batteryMonitor = BatteryMonitorService()
         statusBarService = StatusBarService(batteryMonitor: batteryMonitor!)
-        
-        // Start battery monitoring
         batteryMonitor?.startMonitoring()
         
         print("🚀 BatteryProtect started with optimizations:")
@@ -86,33 +75,22 @@ class AppDelegate: NSObject, AppDelegateProtocol {
     }
     
     func applicationDidBecomeActive(_ notification: Notification) {
-        // Resume monitoring when app becomes active
         batteryMonitor?.startMonitoring()
     }
     
     func applicationDidResignActive(_ notification: Notification) {
-        // Reduce monitoring when app is not active
-        // Keep basic monitoring but reduce frequency
+        // Reduce monitoring when app is not active if needed
     }
     
     private func cleanup() {
-        // Stop performance monitoring
         PerformanceMonitor.shared.stopMonitoring()
-        
-        // Cleanup services in correct order
         statusBarService?.cleanup()
         statusBarService = nil
-        
-        // Cleanup shared window
         StatusBarService.cleanupSharedWindow()
-        
-        // Cleanup settings window
         settingsWindowController?.window?.close()
         settingsWindowController = nil
-        
         batteryMonitor?.stopMonitoring()
         batteryMonitor = nil
-        
         print("✅ AppDelegate cleanup completed")
     }
 }
@@ -129,63 +107,54 @@ extension AppDelegate: AppMenuServiceDelegate {
     }
     
     @objc func showPreferences() {
-        // Close existing preferences window if open
+        // If already open, bring to front
         if let existingWindow = settingsWindowController?.window, existingWindow.isVisible {
             existingWindow.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
             return
         }
         
-        // Clean up any existing window controller
+        // Clean up any existing controller
         if let existingController = settingsWindowController {
             existingController.window?.close()
             settingsWindowController = nil
         }
         
-        // Create preferences window
+        // Create a smaller, minimal window
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 540, height: 700),
-            styleMask: [.titled, .closable, .miniaturizable],
+            contentRect: NSRect(x: 0, y: 0, width: 360, height: 340),
+            styleMask: [.titled, .closable],
             backing: .buffered,
             defer: true
         )
-        
-        window.title = "BatteryProtect Preferences"
+        window.title = "Preferences"
         window.center()
         window.isReleasedWhenClosed = false
-        window.setContentSize(NSSize(width: 540, height: 700))
         
-        // Create preferences view
         let preferencesView = PreferencesView()
         let hostingView = NSHostingView(rootView: preferencesView)
         window.contentView = hostingView
         
-        // Create window controller
         let controller = NSWindowController(window: window)
         settingsWindowController = controller
-        
-        // Show window
         controller.showWindow(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
     
     func openNewWindow() {
-        // Open app in window mode (same as status bar context menu)
         statusBarService?.openInWindowMode()
     }
     
     @objc func showHelp() {
-        // Open help documentation or show help dialog
         let alert = NSAlert()
         alert.messageText = "BatteryProtect Help"
-        alert.informativeText = "BatteryProtect monitors your Mac's battery health and provides smart alerts.\n\n• Left-click the status bar icon to view battery information\n• Right-click for quick actions and settings\n• Alerts appear when battery is low (≤20%) or high (≥80%) while charging\n• Use Preferences to customize alert settings\n\nFor more information, visit the project documentation."
+        alert.informativeText = "BatteryProtect monitors your Mac's battery health and provides smart alerts.\n\n• Left-click the status bar icon to view battery information\n• Right-click for quick actions and settings\n• Alerts appear when battery is low (≤20%) or high (≥80%) while charging\n• Use Preferences to customize alert settings"
         alert.alertStyle = .informational
         alert.addButton(withTitle: "OK")
         alert.runModal()
     }
     
     func openBatterySettings() {
-        // Open system battery settings with safety check
         DispatchQueue.main.async {
             if let url = URL(string: "x-apple.systempreferences:com.apple.preference.battery") {
                 NSWorkspace.shared.open(url)
@@ -194,9 +163,7 @@ extension AppDelegate: AppMenuServiceDelegate {
     }
     
     func quitApp() {
-        // Quit app with safety check and proper cleanup
         DispatchQueue.main.async { [weak self] in
-            // Clean up before quitting
             self?.cleanup()
             NSApp.terminate(nil)
         }
@@ -210,3 +177,4 @@ extension AppDelegate: SignalHandlerServiceDelegate {
         StatusBarService.handleForceQuit()
     }
 }
+

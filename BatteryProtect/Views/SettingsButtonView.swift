@@ -51,8 +51,8 @@ struct SettingsButtonView: View {
     }
     
     private func openPreferences() {
-        // Send action to open preferences window
-        NSApp.sendAction(#selector(AppDelegate.showPreferences), to: nil, from: nil)
+        // Notify StatusBarService to close the popover and open Preferences
+        NotificationCenter.default.post(name: .openPreferencesRequested, object: nil)
     }
 }
 

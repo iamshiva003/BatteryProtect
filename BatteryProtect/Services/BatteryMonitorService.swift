@@ -308,6 +308,12 @@ class BatteryMonitorService: ObservableObject {
         let isCharged = description[kIOPSIsChargedKey as String] as? Bool ?? false
         let isPresent = description["IsPresent"] as? Bool ?? true
         
+        // Time remaining estimates (in minutes), -1 if not available per IOKit
+        let timeToEmptyRaw = description[kIOPSTimeToEmptyKey as String] as? Int ?? -1
+        let timeToFullRaw = description[kIOPSTimeToFullChargeKey as String] as? Int ?? -1
+        let timeToEmptyMinutes: Int? = (timeToEmptyRaw >= 0) ? timeToEmptyRaw : nil
+        let timeToFullChargeMinutes: Int? = (timeToFullRaw >= 0) ? timeToFullRaw : nil
+        
         // Cycle count (robust, multi-source)
         let cycleCount = readCycleCount(fromDescription: description) ?? fetchCycleCountFromIORegistry() ?? lastBatteryInfo?.cycleCount
         
@@ -395,7 +401,9 @@ class BatteryMonitorService: ObservableObject {
             healthPercentage: healthPercentage,
             lastUpdateTime: Date(),
             systemPercentage: percent,
-            cycleCount: cycleCount
+            cycleCount: cycleCount,
+            timeToEmptyMinutes: timeToEmptyMinutes,
+            timeToFullChargeMinutes: timeToFullChargeMinutes
         )
         
         return info

@@ -9,6 +9,10 @@ import SwiftUI
 import AppKit
 import Combine
 
+extension Notification.Name {
+    static let openPreferencesRequested = Notification.Name("BatteryProtectOpenPreferencesRequested")
+}
+
 class StatusBarService: NSObject, ObservableObject {
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
@@ -36,6 +40,7 @@ class StatusBarService: NSObject, ObservableObject {
         super.init()
         setupStatusBar()
         setupImmediateUpdates()
+        NotificationCenter.default.addObserver(self, selector: #selector(handleOpenPreferencesRequest), name: .openPreferencesRequested, object: nil)
     }
     
     deinit {
@@ -129,7 +134,7 @@ class StatusBarService: NSObject, ObservableObject {
                 button.window?.update()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-                    NSApp.activate(ignoringOtherApps: true)
+                    // Do not activate the app when showing the popover to avoid stealing focus.
                 }
             }
         }
@@ -182,11 +187,23 @@ class StatusBarService: NSObject, ObservableObject {
     @objc private func openPreferencesFromMenu() {
         NSApp.sendAction(#selector(AppDelegate.showPreferences), to: nil, from: nil)
     }
+    
     @objc private func showAboutFromMenu() {
         NSApp.sendAction(#selector(AppDelegate.showAbout), to: nil, from: nil)
     }
+    
     @objc private func showHelpFromMenu() {
         NSApp.sendAction(#selector(AppDelegate.showHelp), to: nil, from: nil)
+    }
+    
+    @objc private func handleOpenPreferencesRequest() {
+        // Close the popover if it is currently shown, then open Preferences
+        if let pop = popover, pop.isShown {
+            pop.performClose(nil)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            NSApp.sendAction(#selector(AppDelegate.showPreferences), to: nil, from: nil)
+        }
     }
     
     @objc func openInWindowMode() {
@@ -241,42 +258,22 @@ class StatusBarService: NSObject, ObservableObject {
         if let image = statusBarImage(for: info) {
             button.image = image
             button.title = ""
-            if info.level <= 0.20 {
-                button.contentTintColor = NSColor.systemRed
-            } else if info.level <= 0.50 {
-                button.contentTintColor = NSColor.systemYellow
-            } else if info.isPluggedIn {
-                button.contentTintColor = NSColor.systemGreen
-            } else {
-                button.contentTintColor = nil
-            }
+            // Keep default template tint; do not change color dynamically
+            button.contentTintColor = nil
         } else {
+            // Fallback to a static emoji if SF Symbol is unavailable
             button.image = nil
-            button.title = info.isPluggedIn ? "🔌" : "🔋"
+            button.title = "🔋"
             button.contentTintColor = nil
         }
+        // Tooltip can remain dynamic to show useful info without changing the icon
         button.toolTip = "Battery: \(info.displayPercentage)% - \(info.powerSource)"
     }
     
     private func statusBarImage(for info: BatteryInfo) -> NSImage? {
-        let symbolBase: String = {
-            switch info.level {
-            case ..<0.05: return "battery.0"
-            case ..<0.25: return "battery.25"
-            case ..<0.50: return "battery.50"
-            case ..<0.75: return "battery.75"
-            default:       return "battery.100"
-            }
-        }()
-        let preferredName = info.isPluggedIn ? "\(symbolBase).bolt" : symbolBase
-        let fallbackName = info.isPluggedIn ? "bolt.fill" : "bolt.circle"
-        // Increase the point size to make the icon larger in the menu bar
+        // Return a single, static symbol regardless of battery state
         let config = NSImage.SymbolConfiguration(pointSize: 20, weight: .regular)
-        if let img = NSImage(systemSymbolName: preferredName, accessibilityDescription: nil)?.withSymbolConfiguration(config) {
-            img.isTemplate = true
-            return img
-        }
-        if let img = NSImage(systemSymbolName: fallbackName, accessibilityDescription: nil)?.withSymbolConfiguration(config) {
+        if let img = NSImage(systemSymbolName: "battery.100", accessibilityDescription: nil)?.withSymbolConfiguration(config) {
             img.isTemplate = true
             return img
         }
@@ -305,6 +302,7 @@ class StatusBarService: NSObject, ObservableObject {
         }
         statusItem = nil
         StatusBarService.sharedStatusItem = nil
+        NotificationCenter.default.removeObserver(self)
         print("✅ StatusBarService cleanup completed")
     }
     

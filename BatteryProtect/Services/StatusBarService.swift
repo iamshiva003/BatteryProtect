@@ -129,7 +129,7 @@ class StatusBarService: NSObject, ObservableObject {
                 button.window?.update()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-                    NSApp.activate(ignoringOtherApps: true)
+                    // Do not activate the app when showing the popover to avoid stealing focus.
                 }
             }
         }
@@ -338,3 +338,4 @@ extension StatusBarService: NSPopoverDelegate {
         return true
     }
 }
+

@@ -50,11 +50,38 @@ struct BatteryCircleView: View {
                     .foregroundColor(powerColor)
                     .animation(nil, value: batteryInfo.displayPercentage)
                 
+                if let text = timeText(info: batteryInfo) {
+                    Text(text)
+                        .font(.caption2)
+                        .monospacedDigit()
+                        .foregroundColor(Color.secondaryTextColor(for: colorScheme))
+                }
+                
                 Text(batteryInfo.chargingStatus)
                     .font(.caption2)
                     .foregroundColor(Color.secondaryTextColor(for: colorScheme))
                     .animation(nil, value: batteryInfo.chargingStatus)
             }
+        }
+    }
+    
+    private func timeText(info: BatteryInfo) -> String? {
+        if info.isCharging, let minutes = info.timeToFullChargeMinutes {
+            return "~" + format(minutes: minutes)
+        }
+        if !info.isPluggedIn, let minutes = info.timeToEmptyMinutes {
+            return "~" + format(minutes: minutes)
+        }
+        return nil
+    }
+    
+    private func format(minutes: Int) -> String {
+        let hrs = minutes / 60
+        let mins = minutes % 60
+        if hrs > 0 {
+            return "\(hrs)h \(mins)m"
+        } else {
+            return "\(mins)m"
         }
     }
 }

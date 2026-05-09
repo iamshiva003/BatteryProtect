@@ -18,6 +18,9 @@ struct BatteryInfo {
     let systemPercentage: Int
     // New: total battery cycle count (optional if unavailable)
     let cycleCount: Int?
+    // Estimated time in minutes (if available from IOKit)
+    let timeToEmptyMinutes: Int?
+    let timeToFullChargeMinutes: Int?
 
     init(
         level: Float = 1.0,
@@ -27,7 +30,9 @@ struct BatteryInfo {
         healthPercentage: Int = 100,
         lastUpdateTime: Date = Date(),
         systemPercentage: Int = 100,
-        cycleCount: Int? = nil
+        cycleCount: Int? = nil,
+        timeToEmptyMinutes: Int? = nil,
+        timeToFullChargeMinutes: Int? = nil
     ) {
         self.level = level
         self.powerSource = powerSource
@@ -37,6 +42,8 @@ struct BatteryInfo {
         self.lastUpdateTime = lastUpdateTime
         self.systemPercentage = systemPercentage
         self.cycleCount = cycleCount
+        self.timeToEmptyMinutes = timeToEmptyMinutes
+        self.timeToFullChargeMinutes = timeToFullChargeMinutes
     }
 }
 
@@ -115,3 +122,4 @@ extension BatteryInfo {
         systemPercentage
     }
 } 
+

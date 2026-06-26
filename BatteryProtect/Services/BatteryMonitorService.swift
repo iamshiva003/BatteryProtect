@@ -29,13 +29,12 @@ class BatteryMonitorService: ObservableObject {
     // IOKit push notifications
     private var runLoopSource: CFRunLoopSource?
     
-    // Power source change detection (kept as a secondary mechanism)
-    private var lastPowerSource: String = ""
-    private var powerSourceChangeTimer: Timer?
+    // Cache for expensive registry queries
+    private var cachedCycleCount: Int? = nil
+    private var lastCycleCountFetchTime: Date = Date.distantPast
     
     // Memory management
     private var notificationQueue = DispatchQueue(label: "com.batteryprotect.notifications", qos: .utility)
-    private var batteryInfoCache: [String: Any] = [:]
     
     init() {
         requestNotificationPermission()
@@ -51,18 +50,16 @@ class BatteryMonitorService: ObservableObject {
         isMonitoring = true
         
         setupIOKitNotifications()
-        updateBatteryStatus()
+        updateBatteryStatus(force: true)
         startAdaptivePolling()
-        startPowerSourceMonitoring()
     }
     
     func stopMonitoring() {
         isMonitoring = false
         timer?.invalidate()
         timer = nil
-        powerSourceChangeTimer?.invalidate()
-        powerSourceChangeTimer = nil
-        batteryInfoCache.removeAll()
+        cachedCycleCount = nil
+        lastCycleCountFetchTime = Date.distantPast
         tearDownIOKitNotifications()
     }
     
@@ -92,9 +89,7 @@ class BatteryMonitorService: ObservableObject {
     
     private func handlePowerSourceNotification() {
         // Immediate update on any battery/power source change
-        updateBatteryStatus()
-        // Temporarily increase polling frequency to catch rapid transitions
-        increasePollingFrequency()
+        updateBatteryStatus(force: true)
     }
     
     // MARK: - Polling (fallback and adaptive)
@@ -104,45 +99,6 @@ class BatteryMonitorService: ObservableObject {
         timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             self?.updateBatteryStatus()
         }
-    }
-    
-    private func startPowerSourceMonitoring() {
-        powerSourceChangeTimer?.invalidate()
-        powerSourceChangeTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
-            self?.checkPowerSourceChange()
-        }
-    }
-    
-    private func checkPowerSourceChange() {
-        let currentPowerSource = getCurrentPowerSource()
-        if currentPowerSource != lastPowerSource {
-            lastPowerSource = currentPowerSource
-            updateBatteryStatus()
-            increasePollingFrequency()
-        }
-    }
-    
-    private func getCurrentPowerSource() -> String {
-        let snapshot = IOPSCopyPowerSourcesInfo().takeRetainedValue()
-        let sources: NSArray = IOPSCopyPowerSourcesList(snapshot).takeRetainedValue()
-        guard let source = sources.firstObject else { return "Unknown" }
-        let description = IOPSGetPowerSourceDescription(snapshot, source as CFTypeRef).takeUnretainedValue() as? [String: Any]
-        return description?[kIOPSPowerSourceStateKey as String] as? String ?? "Unknown"
-    }
-    
-    private func increasePollingFrequency() {
-        timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: fastPollingInterval, repeats: true) { [weak self] _ in
-            self?.updateBatteryStatus()
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 10.0) { [weak self] in
-            self?.resetToNormalPolling()
-        }
-    }
-    
-    private func resetToNormalPolling() {
-        guard isMonitoring else { return }
-        startAdaptivePolling()
     }
     
     private func getOptimalPollingInterval() -> TimeInterval {
@@ -172,13 +128,17 @@ class BatteryMonitorService: ObservableObject {
         UNUserNotificationCenter.current().getNotificationSettings { _ in }
     }
     
-    // MARK: - Battery update and alerts
-    private func updateBatteryStatus() {
+    func forceUpdate() {
+        updateBatteryStatus(force: true)
+    }
+    
+    private func updateBatteryStatus(force: Bool = false) {
         guard isMonitoring else { return }
         let newBatteryInfo = getBatteryInfo()
         let pluggedIn = newBatteryInfo.isPluggedIn
         
-        let shouldUpdate = shouldUpdateUI(newBatteryInfo: newBatteryInfo) ||
+        let shouldUpdate = force ||
+                           shouldUpdateUI(newBatteryInfo: newBatteryInfo) ||
                            newBatteryInfo.powerSource != (lastBatteryInfo?.powerSource ?? "")
         
         if shouldUpdate {
@@ -323,8 +283,17 @@ class BatteryMonitorService: ObservableObject {
         let timeToEmptyMinutes: Int? = (timeToEmptyRaw >= 0) ? timeToEmptyRaw : nil
         let timeToFullChargeMinutes: Int? = (timeToFullRaw >= 0) ? timeToFullRaw : nil
         
-        // Cycle count (robust, multi-source)
-        let cycleCount = readCycleCount(fromDescription: description) ?? fetchCycleCountFromIORegistry() ?? lastBatteryInfo?.cycleCount
+        // Cycle count (robust, multi-source, cached)
+        let cycleCount: Int?
+        let now = Date()
+        if let cached = cachedCycleCount, now.timeIntervalSince(lastCycleCountFetchTime) < 600.0 {
+            cycleCount = cached
+        } else {
+            let fetched = readCycleCount(fromDescription: description) ?? fetchCycleCountFromIORegistry() ?? lastBatteryInfo?.cycleCount
+            cachedCycleCount = fetched
+            lastCycleCountFetchTime = now
+            cycleCount = fetched
+        }
         
         // Compute percentage using IOKit only, matching system rounding
         var percent: Int

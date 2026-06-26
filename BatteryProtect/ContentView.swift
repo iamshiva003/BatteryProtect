@@ -8,9 +8,13 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var batteryMonitor = BatteryMonitorService()
+    @ObservedObject var batteryMonitor: BatteryMonitorService
     @Environment(\.colorScheme) private var colorScheme
     @State private var isAppearing: Bool = false
+    
+    init(batteryMonitor: BatteryMonitorService = BatteryMonitorService()) {
+        self.batteryMonitor = batteryMonitor
+    }
     
     var body: some View {
         ZStack {
@@ -66,13 +70,9 @@ struct ContentView: View {
                 )
         )
         .onAppear {
-            batteryMonitor.startMonitoring()
             withAnimation {
                 isAppearing = true
             }
-        }
-        .onDisappear {
-            batteryMonitor.stopMonitoring()
         }
     }
 }

@@ -89,7 +89,7 @@ class StatusBarService: NSObject, ObservableObject {
         pop.behavior = .transient
         pop.animates = true
         pop.delegate = self
-        pop.contentViewController = NSHostingController(rootView: ContentView())
+        pop.contentViewController = NSHostingController(rootView: ContentView(batteryMonitor: batteryMonitor ?? BatteryMonitorService()))
         popover = pop
         setupGlobalEventMonitor()
     }
@@ -224,7 +224,7 @@ class StatusBarService: NSObject, ObservableObject {
         )
         window.title = "BatteryProtect"
         window.center()
-        window.contentView = NSHostingView(rootView: ContentView())
+        window.contentView = NSHostingView(rootView: ContentView(batteryMonitor: batteryMonitor ?? BatteryMonitorService()))
         let controller = NSWindowController(window: window)
         StatusBarService.sharedWindowController = controller
         controller.showWindow(nil)

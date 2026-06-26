@@ -99,6 +99,9 @@ class AppDelegate: NSObject, AppDelegateProtocol {
 extension AppDelegate: AppMenuServiceDelegate {
     @objc func showAbout() {
         let alert = NSAlert()
+        if let appIcon = NSImage(named: "AppIcon") {
+            alert.icon = appIcon
+        }
         alert.messageText = "About BatteryProtect"
         alert.informativeText = "BatteryProtect v1.0\n\nA macOS status bar application that monitors battery health and provides intelligent alerts to preserve battery longevity.\n\nCreated by Shivakumar Patil\n© 2025 All rights reserved."
         alert.alertStyle = .informational
@@ -147,6 +150,9 @@ extension AppDelegate: AppMenuServiceDelegate {
     
     @objc func showHelp() {
         let alert = NSAlert()
+        if let appIcon = NSImage(named: "AppIcon") {
+            alert.icon = appIcon
+        }
         alert.messageText = "BatteryProtect Help"
         alert.informativeText = "BatteryProtect monitors your Mac's battery health and provides smart alerts.\n\n• Left-click the status bar icon to view battery information\n• Right-click for quick actions and settings\n• Alerts appear when battery is low (≤20%) or high (≥80%) while charging\n• Use Preferences to customize alert settings"
         alert.alertStyle = .informational

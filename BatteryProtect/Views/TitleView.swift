@@ -38,26 +38,16 @@ struct TitleView: View {
     
     var body: some View {
         HStack(spacing: 6) {
-            Group {
-                if batteryInfo.isCharging {
-                    Image(systemName: "bolt.circle.fill")
-                        .font(.system(size: 20))
-                        .foregroundStyle(powerColor)
-                        .scaleEffect(isHovering ? 1.1 : 1.0)
-                        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isHovering)
-                } else {
-                    Image(systemName: batteryInfo.batteryIcon)
-                        .font(.system(size: 20))
-                        .foregroundStyle(powerColor)
-                        .scaleEffect(pulseScale)
-                        .animation(
-                            batteryInfo.isCriticalBattery ? 
-                            .easeInOut(duration: 1.0).repeatForever(autoreverses: true) : 
-                            .spring(response: 0.3, dampingFraction: 0.6),
-                            value: pulseScale
-                        )
-                }
-            }
+            Image(systemName: "bolt.circle.fill")
+                .font(.system(size: 20))
+                .foregroundStyle(powerColor)
+                .scaleEffect(batteryInfo.isCriticalBattery ? pulseScale : (isHovering ? 1.1 : 1.0))
+                .animation(
+                    batteryInfo.isCriticalBattery ? 
+                    .easeInOut(duration: 1.0).repeatForever(autoreverses: true) : 
+                    .spring(response: 0.3, dampingFraction: 0.6),
+                    value: batteryInfo.isCriticalBattery ? pulseScale : (isHovering ? 1.1 : 1.0)
+                )
             
             Text("Battery")
                 .font(.system(size: 18, weight: .medium))

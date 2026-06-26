@@ -58,17 +58,17 @@ extension BatteryInfo {
     
     var isLowBattery: Bool {
         let lowThreshold = UserDefaults.standard.object(forKey: "lowBatteryThreshold") as? Double ?? 20.0
-        return level <= Float(lowThreshold / 100.0)
+        return level <= (Float(lowThreshold) / 100.0)
     }
     
     var isHighBattery: Bool {
         let highThreshold = UserDefaults.standard.object(forKey: "highBatteryThreshold") as? Double ?? 80.0
-        return level >= Float(highThreshold / 100.0)
+        return level >= (Float(highThreshold) / 100.0)
     }
     
     var isCriticalBattery: Bool {
         let lowThreshold = UserDefaults.standard.object(forKey: "lowBatteryThreshold") as? Double ?? 20.0
-        return level <= Float((lowThreshold - 5.0) / 100.0) // 5% below low threshold
+        return level <= ((Float(lowThreshold) - 5.0) / 100.0) // 5% below low threshold
     }
     
     var batteryIcon: String {
@@ -86,19 +86,14 @@ extension BatteryInfo {
     }
     
     var batteryColor: String {
-        let lowThreshold = UserDefaults.standard.object(forKey: "lowBatteryThreshold") as? Double ?? 20.0
-        let criticalThreshold = Float((lowThreshold - 5.0) / 100.0)
-        let lowThresholdFloat = Float(lowThreshold / 100.0)
-        
-        if level <= criticalThreshold {
-            return "red"
-        } else if level <= lowThresholdFloat {
-            return "orange"
-        } else if isPluggedIn {
+        if isPluggedIn {
             return "green"
-        } else {
-            return "orange"
         }
+        let percent = level * 100.0
+        if percent < 20.0 {
+            return "red"
+        }
+        return "orange"
     }
     
     var healthIcon: String {
@@ -122,4 +117,3 @@ extension BatteryInfo {
         systemPercentage
     }
 } 
-

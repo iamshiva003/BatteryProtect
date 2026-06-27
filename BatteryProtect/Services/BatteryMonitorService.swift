@@ -215,12 +215,10 @@ class BatteryMonitorService: ObservableObject {
             lastBatteryState = (level, pluggedIn)
         }
         
-        // Stop sending notifications when charger is connected
-        guard !pluggedIn && !isExternalConnected() else { return }
-        
         let now = Date()
         let timeSinceLastAlert = now.timeIntervalSince(lastAlertTime)
         let powerSourceChanged = pluggedIn != lastBatteryState.pluggedIn
+        let isPowerConnected = pluggedIn || isExternalConnected()
         
         let enableLowBatteryAlerts = UserDefaults.standard.object(forKey: "enableLowBatteryAlerts") as? Bool ?? true
         let enableHighBatteryAlerts = UserDefaults.standard.object(forKey: "enableHighBatteryAlerts") as? Bool ?? true
@@ -235,24 +233,24 @@ class BatteryMonitorService: ObservableObject {
         var title = ""
         
         if timeSinceLastAlert > 30 {
-            if enableLowBatteryAlerts && level <= lowThreshold {
-                title = "⚠️ Low Battery"
+            if !isPowerConnected && enableLowBatteryAlerts && level <= lowThreshold {
+                title = "Low Battery"
                 message = "Battery level is low: \(Int((level * 100).rounded()))% (threshold: \(Int(lowBatteryThreshold))%)"
                 shouldShowAlert = true
-            } else if enableHighBatteryAlerts && level >= highThreshold {
-                title = "🔌 High Battery"
+            } else if isPowerConnected && enableHighBatteryAlerts && level >= highThreshold {
+                title = "High Battery"
                 message = "Battery level is high: \(Int((level * 100).rounded()))% (threshold: \(Int(highBatteryThreshold))%)"
                 shouldShowAlert = true
             }
         }
         
         if powerSourceChanged && !shouldShowAlert && timeSinceLastAlert > 5 {
-            if enableLowBatteryAlerts && level <= lowThreshold {
-                title = "⚠️ Low Battery"
+            if !isPowerConnected && enableLowBatteryAlerts && level <= lowThreshold {
+                title = "Low Battery"
                 message = "Battery level is low: \(Int((level * 100).rounded()))% (threshold: \(Int(lowBatteryThreshold))%)"
                 shouldShowAlert = true
-            } else if enableHighBatteryAlerts && level >= highThreshold {
-                title = "🔌 High Battery"
+            } else if isPowerConnected && enableHighBatteryAlerts && level >= highThreshold {
+                title = "High Battery"
                 message = "Battery level is high: \(Int((level * 100).rounded()))% (threshold: \(Int(highBatteryThreshold))%)"
                 shouldShowAlert = true
             }
@@ -261,6 +259,21 @@ class BatteryMonitorService: ObservableObject {
         if shouldShowAlert {
             showNotification(title: title, message: message)
             lastAlertTime = now
+            
+            // Send iCloud notification if it is a high battery alert and enabled
+            if title.contains("High Battery") {
+                let enablePushToiPhone = UserDefaults.standard.object(forKey: "enablePushToiPhone") as? Bool ?? false
+                if enablePushToiPhone {
+                    iCloudNotificationService.shared.sendHighBatteryAlert(level: Double(level), threshold: highBatteryThreshold)
+                }
+                
+                #if os(macOS)
+                let enableLocalWiFiSync = UserDefaults.standard.object(forKey: "enableLocalWiFiSync") as? Bool ?? true
+                if enableLocalWiFiSync {
+                    LocalNetworkNotificationService.shared.sendLocalHighBatteryAlert(level: Double(level), threshold: highBatteryThreshold)
+                }
+                #endif
+            }
         }
     }
     

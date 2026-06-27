@@ -16,6 +16,8 @@ struct PreferencesView: View {
     @AppStorage("highBatteryThreshold") private var highBatteryThreshold = 80.0
     @AppStorage("startAtLogin") private var startAtLogin = false
     @AppStorage("enableNotifications") private var enableNotifications = true
+    @AppStorage("enablePushToiPhone") private var enablePushToiPhone = false
+    @AppStorage("enableLocalWiFiSync") private var enableLocalWiFiSync = true
     
     @State private var startAtLoginErrorMessage: String?
 
@@ -86,6 +88,12 @@ struct PreferencesView: View {
                         }
                         .gridCellUnsizedAxes([])
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        
+                        Toggle("Send to iPhone (iCloud)", isOn: $enablePushToiPhone)
+                            .padding(.leading, 16)
+                        
+                        Toggle("Send to iPhone (Local Wi-Fi)", isOn: $enableLocalWiFiSync)
+                            .padding(.leading, 16)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -121,6 +129,8 @@ struct PreferencesView: View {
         highBatteryThreshold = 80.0
         startAtLogin = StartAtLoginManager.isEnabled() // keep in sync
         enableNotifications = true
+        enablePushToiPhone = false
+        enableLocalWiFiSync = true
     }
 
     private func openSystemBatterySettings() {

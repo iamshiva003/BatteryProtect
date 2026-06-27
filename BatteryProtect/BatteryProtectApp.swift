@@ -54,6 +54,11 @@ class AppDelegate: NSObject, AppDelegateProtocol {
         statusBarService = StatusBarService(batteryMonitor: batteryMonitor!)
         batteryMonitor?.startMonitoring()
         
+        #if os(macOS)
+        // Eagerly initialize local network notifications to start browsing immediately
+        _ = LocalNetworkNotificationService.shared
+        #endif
+        
         print("🚀 BatteryProtect started with optimizations:")
         print("   • Adaptive polling intervals")
         print("   • Memory-efficient caching")

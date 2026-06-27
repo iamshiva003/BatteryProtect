@@ -24,6 +24,7 @@ class LocalNetworkReceiverService: NSObject, ObservableObject {
     @Published var connectionStatus: String = "Idle"
     @Published var lastAlertReceivedTime: Date?
     @Published var lastAlertLevel: Double?
+    @Published var macBatteryInfo: BatteryInfo?
     
     private override init() {
         let name = UIDevice.current.name
@@ -131,6 +132,7 @@ extension LocalNetworkReceiverService: MCSessionDelegate {
                 print("LocalNetworkReceiverService: Disconnected from \(peerID.displayName).")
                 if session.connectedPeers.isEmpty {
                     self.connectionStatus = "Advertising..."
+                    self.macBatteryInfo = nil
                 }
             @unknown default:
                 break
@@ -143,18 +145,52 @@ extension LocalNetworkReceiverService: MCSessionDelegate {
         
         do {
             if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
-               let type = json["type"] as? String, type == "high-battery",
-               let level = json["level"] as? Double,
-               let threshold = json["threshold"] as? Double {
+               let type = json["type"] as? String {
                 
-                print("LocalNetworkReceiverService: Parsed alert (Level: \(level), Threshold: \(threshold)). Triggering notification.")
-                
-                DispatchQueue.main.async {
-                    self.lastAlertReceivedTime = Date()
-                    self.lastAlertLevel = level
+                if type == "high-battery",
+                   let level = json["level"] as? Double,
+                   let threshold = json["threshold"] as? Double {
+                    
+                    print("LocalNetworkReceiverService: Parsed alert (Level: \(level), Threshold: \(threshold)). Triggering notification.")
+                    
+                    DispatchQueue.main.async {
+                        self.lastAlertReceivedTime = Date()
+                        self.lastAlertLevel = level
+                    }
+                    
+                    triggerLocalNotification(level: level, threshold: threshold)
+                } else if type == "status-update" {
+                    let level = json["level"] as? Double ?? 1.0
+                    let systemPercentage = json["systemPercentage"] as? Int ?? 100
+                    let chargingStatus = json["chargingStatus"] as? String ?? "Unknown"
+                    let powerSource = json["powerSource"] as? String ?? "Unknown"
+                    let health = json["health"] as? String ?? "Unknown"
+                    let healthPercentage = json["healthPercentage"] as? Int ?? 100
+                    let cycleCountRaw = json["cycleCount"] as? Int ?? -1
+                    let timeToFullChargeMinutesRaw = json["timeToFullChargeMinutes"] as? Int ?? -1
+                    let timeToEmptyMinutesRaw = json["timeToEmptyMinutes"] as? Int ?? -1
+                    
+                    let cycleCount = cycleCountRaw >= 0 ? cycleCountRaw : nil
+                    let timeToFullChargeMinutes = timeToFullChargeMinutesRaw >= 0 ? timeToFullChargeMinutesRaw : nil
+                    let timeToEmptyMinutes = timeToEmptyMinutesRaw >= 0 ? timeToEmptyMinutesRaw : nil
+                    
+                    let info = BatteryInfo(
+                        level: Float(level),
+                        powerSource: powerSource,
+                        chargingStatus: chargingStatus,
+                        health: health,
+                        healthPercentage: healthPercentage,
+                        lastUpdateTime: Date(),
+                        systemPercentage: systemPercentage,
+                        cycleCount: cycleCount,
+                        timeToEmptyMinutes: timeToEmptyMinutes,
+                        timeToFullChargeMinutes: timeToFullChargeMinutes
+                    )
+                    
+                    DispatchQueue.main.async {
+                        self.macBatteryInfo = info
+                    }
                 }
-                
-                triggerLocalNotification(level: level, threshold: threshold)
             }
         } catch {
             print("LocalNetworkReceiverService: Error parsing message: \(error.localizedDescription)")
@@ -166,5 +202,78 @@ extension LocalNetworkReceiverService: MCSessionDelegate {
     func session(_ session: MCSession, didStartReceivingResourceWithName resourceName: String, fromPeer peerID: MCPeerID, with progress: Progress) {}
     
     func session(_ session: MCSession, didFinishReceivingResourceWithName resourceName: String, fromPeer peerID: MCPeerID, at localURL: URL?, withError error: Error?) {}
+}
+
+// MARK: - Shared iOS BatteryInfo Model
+struct BatteryInfo {
+    let level: Float
+    let powerSource: String
+    let chargingStatus: String
+    let health: String
+    let healthPercentage: Int
+    let lastUpdateTime: Date
+    let systemPercentage: Int
+    let cycleCount: Int?
+    let timeToEmptyMinutes: Int?
+    let timeToFullChargeMinutes: Int?
+    
+    init(
+        level: Float = 1.0,
+        powerSource: String = "Unknown",
+        chargingStatus: String = "Unknown",
+        health: String = "Unknown",
+        healthPercentage: Int = 100,
+        lastUpdateTime: Date = Date(),
+        systemPercentage: Int = 100,
+        cycleCount: Int? = nil,
+        timeToEmptyMinutes: Int? = nil,
+        timeToFullChargeMinutes: Int? = nil
+    ) {
+        self.level = level
+        self.powerSource = powerSource
+        self.chargingStatus = chargingStatus
+        self.health = health
+        self.healthPercentage = healthPercentage
+        self.lastUpdateTime = lastUpdateTime
+        self.systemPercentage = systemPercentage
+        self.cycleCount = cycleCount
+        self.timeToEmptyMinutes = timeToEmptyMinutes
+        self.timeToFullChargeMinutes = timeToFullChargeMinutes
+    }
+}
+
+extension BatteryInfo {
+    var isCharging: Bool {
+        chargingStatus == "Charging"
+    }
+    
+    var isPluggedIn: Bool {
+        powerSource == "Power Adapter"
+    }
+    
+    var batteryIcon: String {
+        if level <= 0.05 {
+            return "battery.0.circle.fill"
+        } else if level <= 0.25 {
+            return "battery.25.circle.fill"
+        } else if level <= 0.50 {
+            return "battery.50.circle.fill"
+        } else if level <= 0.75 {
+            return "battery.75.circle.fill"
+        } else {
+            return "battery.100.circle.fill"
+        }
+    }
+    
+    var batteryColor: String {
+        if isPluggedIn {
+            return "green"
+        }
+        let percent = level * 100.0
+        if percent < 20.0 {
+            return "red"
+        }
+        return "orange"
+    }
 }
 #endif

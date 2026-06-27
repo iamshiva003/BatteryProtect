@@ -190,6 +190,13 @@ class BatteryMonitorService: ObservableObject {
         checkBatteryAlerts(level: newBatteryInfo.level, pluggedIn: pluggedIn)
         updatePollingIntervalIfNeeded(newBatteryInfo: newBatteryInfo)
         lastBatteryInfo = newBatteryInfo
+        
+        #if os(macOS)
+        let enableLocalWiFiSync = UserDefaults.standard.object(forKey: "enableLocalWiFiSync") as? Bool ?? true
+        if enableLocalWiFiSync {
+            LocalNetworkNotificationService.shared.sendLocalBatteryStatus(info: newBatteryInfo)
+        }
+        #endif
     }
     
     private func shouldUpdateUI(newBatteryInfo: BatteryInfo) -> Bool {

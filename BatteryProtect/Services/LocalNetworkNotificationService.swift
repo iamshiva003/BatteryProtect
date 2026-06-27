@@ -130,6 +130,35 @@ class LocalNetworkNotificationService: NSObject, ObservableObject {
             print("LocalNetworkNotificationService: Error serializing or sending network notification: \(error.localizedDescription)")
         }
     }
+    
+    /// Broadcasts the current full BatteryInfo snapshot to all connected iOS companion apps.
+    func sendLocalBatteryStatus(info: BatteryInfo) {
+        guard let session = session, !session.connectedPeers.isEmpty else {
+            return
+        }
+        
+        let messageDict: [String: Any] = [
+            "type": "status-update",
+            "level": Double(info.level),
+            "systemPercentage": info.systemPercentage,
+            "chargingStatus": info.chargingStatus,
+            "powerSource": info.powerSource,
+            "health": info.health,
+            "healthPercentage": info.healthPercentage,
+            "cycleCount": info.cycleCount ?? -1,
+            "timeToFullChargeMinutes": info.timeToFullChargeMinutes ?? -1,
+            "timeToEmptyMinutes": info.timeToEmptyMinutes ?? -1,
+            "timestamp": Date().timeIntervalSince1970
+        ]
+        
+        do {
+            let data = try JSONSerialization.data(withJSONObject: messageDict, options: [])
+            try session.send(data, toPeers: session.connectedPeers, with: .reliable)
+            print("LocalNetworkNotificationService: Broadcasted battery status update (\(info.systemPercentage)%) to peers.")
+        } catch {
+            print("LocalNetworkNotificationService: Error broadcasting battery status: \(error.localizedDescription)")
+        }
+    }
 }
 
 // MARK: - MCNearbyServiceBrowserDelegate
@@ -169,6 +198,14 @@ extension LocalNetworkNotificationService: MCSessionDelegate {
             case .connected:
                 print("LocalNetworkNotificationService: Connected to \(peerID.displayName)!")
                 self.connectionStatus = "Connected"
+                #if os(macOS)
+                DispatchQueue.main.async {
+                    if let appDelegate = NSApplication.shared.delegate as? AppDelegate,
+                       let batteryMonitor = appDelegate.batteryMonitor {
+                        self.sendLocalBatteryStatus(info: batteryMonitor.batteryInfo)
+                    }
+                }
+                #endif
             case .notConnected:
                 print("LocalNetworkNotificationService: Disconnected from \(peerID.displayName).")
                 if session.connectedPeers.isEmpty {

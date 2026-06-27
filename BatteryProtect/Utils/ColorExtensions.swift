@@ -9,15 +9,17 @@ import SwiftUI
 
 extension Color {
     static func batteryColor(for batteryInfo: BatteryInfo, colorScheme: ColorScheme) -> Color {
-        if batteryInfo.isCriticalBattery {
-            return .red
-        } else if batteryInfo.isLowBattery {
-            return .orange
-        } else if batteryInfo.isPluggedIn {
+        // 1. Green if plugged in (charging)
+        if batteryInfo.isPluggedIn {
             return .green
-        } else {
-            return .orange
         }
+        // 2. Red if below 20%
+        let percent = batteryInfo.level * 100.0
+        if percent < 20.0 {
+            return .red
+        }
+        // 3. Orange for all other cases
+        return .orange
     }
     
     static func healthColor(for batteryInfo: BatteryInfo, baseColor: Color) -> Color {

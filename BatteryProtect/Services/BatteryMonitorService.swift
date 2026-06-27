@@ -211,9 +211,14 @@ class BatteryMonitorService: ObservableObject {
     }
     
     private func checkBatteryAlerts(level: Float, pluggedIn: Bool) {
+        defer {
+            lastBatteryState = (level, pluggedIn)
+        }
+        
         let now = Date()
         let timeSinceLastAlert = now.timeIntervalSince(lastAlertTime)
         let powerSourceChanged = pluggedIn != lastBatteryState.pluggedIn
+        let isPowerConnected = pluggedIn || isExternalConnected()
         
         let enableLowBatteryAlerts = UserDefaults.standard.object(forKey: "enableLowBatteryAlerts") as? Bool ?? true
         let enableHighBatteryAlerts = UserDefaults.standard.object(forKey: "enableHighBatteryAlerts") as? Bool ?? true
@@ -228,25 +233,25 @@ class BatteryMonitorService: ObservableObject {
         var title = ""
         
         if timeSinceLastAlert > 30 {
-            if enableLowBatteryAlerts && level <= lowThreshold {
-                title = "⚠️ Low Battery"
+            if !isPowerConnected && enableLowBatteryAlerts && level <= lowThreshold {
+                title = "Low Battery"
                 message = "Battery level is low: \(Int((level * 100).rounded()))% (threshold: \(Int(lowBatteryThreshold))%)"
                 shouldShowAlert = true
-            } else if enableHighBatteryAlerts && level >= highThreshold && pluggedIn {
-                title = "🔌 High Battery"
-                message = "Battery level is high: \(Int((level * 100).rounded()))% (threshold: \(Int(highBatteryThreshold))%) - Consider unplugging to preserve battery health"
+            } else if isPowerConnected && enableHighBatteryAlerts && level >= highThreshold {
+                title = "High Battery"
+                message = "Battery level is high: \(Int((level * 100).rounded()))% (threshold: \(Int(highBatteryThreshold))%)"
                 shouldShowAlert = true
             }
         }
         
         if powerSourceChanged && !shouldShowAlert && timeSinceLastAlert > 5 {
-            if enableLowBatteryAlerts && level <= lowThreshold {
-                title = "⚠️ Low Battery"
+            if !isPowerConnected && enableLowBatteryAlerts && level <= lowThreshold {
+                title = "Low Battery"
                 message = "Battery level is low: \(Int((level * 100).rounded()))% (threshold: \(Int(lowBatteryThreshold))%)"
                 shouldShowAlert = true
-            } else if enableHighBatteryAlerts && level >= highThreshold && pluggedIn {
-                title = "🔌 High Battery"
-                message = "Battery level is high: \(Int((level * 100).rounded()))% (threshold: \(Int(highBatteryThreshold))%) - Consider unplugging to preserve battery health"
+            } else if isPowerConnected && enableHighBatteryAlerts && level >= highThreshold {
+                title = "High Battery"
+                message = "Battery level is high: \(Int((level * 100).rounded()))% (threshold: \(Int(highBatteryThreshold))%)"
                 shouldShowAlert = true
             }
         }
@@ -254,9 +259,22 @@ class BatteryMonitorService: ObservableObject {
         if shouldShowAlert {
             showNotification(title: title, message: message)
             lastAlertTime = now
+            
+            // Send iCloud notification if it is a high battery alert and enabled
+            if title.contains("High Battery") {
+                let enablePushToiPhone = UserDefaults.standard.object(forKey: "enablePushToiPhone") as? Bool ?? false
+                if enablePushToiPhone {
+                    iCloudNotificationService.shared.sendHighBatteryAlert(level: Double(level), threshold: highBatteryThreshold)
+                }
+                
+                #if os(macOS)
+                let enableLocalWiFiSync = UserDefaults.standard.object(forKey: "enableLocalWiFiSync") as? Bool ?? true
+                if enableLocalWiFiSync {
+                    LocalNetworkNotificationService.shared.sendLocalHighBatteryAlert(level: Double(level), threshold: highBatteryThreshold)
+                }
+                #endif
+            }
         }
-        
-        lastBatteryState = (level, pluggedIn)
     }
     
     private func showNotification(title: String, message: String) {
@@ -267,7 +285,10 @@ class BatteryMonitorService: ObservableObject {
             content.sound = .default
             content.interruptionLevel = .timeSensitive
             
-            let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+            let identifier = "com.batteryprotect.alert"
+            UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [identifier])
+            
+            let request = UNNotificationRequest(identifier: identifier, content: content, trigger: nil)
             UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
         }
     }
@@ -303,7 +324,8 @@ class BatteryMonitorService: ObservableObject {
         
         // Power and charging flags
         let powerSourceState = description[kIOPSPowerSourceStateKey as String] as? String ?? "Unknown"
-        let onAC = (powerSourceState == kIOPSACPowerValue)
+        let isHardwareConnected = isExternalConnected()
+        let onAC = (powerSourceState == kIOPSACPowerValue) || isHardwareConnected
         let isCharging = description[kIOPSIsChargingKey as String] as? Bool ?? false
         let isCharged = description[kIOPSIsChargedKey as String] as? Bool ?? false
         let isPresent = description["IsPresent"] as? Bool ?? true
@@ -350,10 +372,8 @@ class BatteryMonitorService: ObservableObject {
             chargingStatus = "No Battery"
         } else if isCharged {
             chargingStatus = "Charged"
-        } else if isCharging {
+        } else if isCharging || onAC {
             chargingStatus = "Charging"
-        } else if onAC {
-            chargingStatus = "Not Charging"
         } else if powerSourceState == kIOPSBatteryPowerValue {
             chargingStatus = "Discharging"
         } else {
@@ -447,6 +467,39 @@ class BatteryMonitorService: ObservableObject {
                     return number.intValue
                 } else if let intValue = cfValue as? Int {
                     return intValue
+                }
+            }
+            service = IOIteratorNext(iterator)
+        }
+        return nil
+    }
+    
+    // MARK: - Hardware external connection check
+    private func isExternalConnected() -> Bool {
+        if let connected = fetchExternalConnected(serviceName: "AppleSmartBattery") {
+            return connected
+        }
+        if let connected = fetchExternalConnected(serviceName: "AppleSmartBatteryManager") {
+            return connected
+        }
+        return false
+    }
+    
+    private func fetchExternalConnected(serviceName: String) -> Bool? {
+        guard let matching = IOServiceMatching(serviceName) else { return nil }
+        var iterator: io_iterator_t = 0
+        let result = IOServiceGetMatchingServices(kIOMainPortDefault, matching, &iterator)
+        if result != KERN_SUCCESS { return nil }
+        defer { IOObjectRelease(iterator) }
+        
+        var service = IOIteratorNext(iterator)
+        while service != 0 {
+            defer { IOObjectRelease(service) }
+            if let cfValue = IORegistryEntryCreateCFProperty(service, "ExternalConnected" as CFString, kCFAllocatorDefault, 0)?.takeRetainedValue() {
+                if let number = cfValue as? NSNumber {
+                    return number.boolValue
+                } else if let boolValue = cfValue as? Bool {
+                    return boolValue
                 }
             }
             service = IOIteratorNext(iterator)

@@ -21,13 +21,50 @@
 			remoteGlobalIDString = D425F9FA2E3C97C20070B3CD;
 			remoteInfo = BatteryProtect;
 		};
+		D4E573CD2FEFE1EF00B91111 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D425F9F32E3C97C20070B3CD /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D4E573BF2FEFE1EF00B91111;
+			remoteInfo = BatteryProtectiOS;
+		};
+		D4E573D72FEFE1EF00B91111 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D425F9F32E3C97C20070B3CD /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D4E573BF2FEFE1EF00B91111;
+			remoteInfo = BatteryProtectiOS;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		D425F9FB2E3C97C20070B3CD /* BatteryProtect.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BatteryProtect.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D425FA092E3C97C20070B3CD /* BatteryProtectTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BatteryProtectTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D425FA132E3C97C20070B3CD /* BatteryProtectUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BatteryProtectUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D4E573C02FEFE1EF00B91111 /* BatteryProtectiOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BatteryProtectiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D4E573CC2FEFE1EF00B91111 /* BatteryProtectiOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BatteryProtectiOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D4E573D62FEFE1EF00B91111 /* BatteryProtectiOSUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BatteryProtectiOSUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		D4E573E72FEFE39D00B91111 /* Exceptions for "BatteryProtectiOS" folder in "BatteryProtect" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				BatteryProtectiOSApp.swift,
+				CloudKitReceiverService.swift,
+				iOSContentView.swift,
+				LocalNetworkReceiverService.swift,
+			);
+			target = D425F9FA2E3C97C20070B3CD /* BatteryProtect */;
+		};
+		D4E573EE2FEFE9AE00B91111 /* Exceptions for "BatteryProtectiOS" folder in "BatteryProtectiOS" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = D4E573BF2FEFE1EF00B91111 /* BatteryProtectiOS */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		D425F9FD2E3C97C20070B3CD /* BatteryProtect */ = {
@@ -43,6 +80,25 @@
 		D425FA162E3C97C20070B3CD /* BatteryProtectUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = BatteryProtectUITests;
+			sourceTree = "<group>";
+		};
+		D4E573C12FEFE1EF00B91111 /* BatteryProtectiOS */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				D4E573E72FEFE39D00B91111 /* Exceptions for "BatteryProtectiOS" folder in "BatteryProtect" target */,
+				D4E573EE2FEFE9AE00B91111 /* Exceptions for "BatteryProtectiOS" folder in "BatteryProtectiOS" target */,
+			);
+			path = BatteryProtectiOS;
+			sourceTree = "<group>";
+		};
+		D4E573CF2FEFE1EF00B91111 /* BatteryProtectiOSTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = BatteryProtectiOSTests;
+			sourceTree = "<group>";
+		};
+		D4E573D92FEFE1EF00B91111 /* BatteryProtectiOSUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = BatteryProtectiOSUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -69,6 +125,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D4E573BD2FEFE1EF00B91111 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D4E573C92FEFE1EF00B91111 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D4E573D32FEFE1EF00B91111 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -78,6 +155,9 @@
 				D425F9FD2E3C97C20070B3CD /* BatteryProtect */,
 				D425FA0C2E3C97C20070B3CD /* BatteryProtectTests */,
 				D425FA162E3C97C20070B3CD /* BatteryProtectUITests */,
+				D4E573C12FEFE1EF00B91111 /* BatteryProtectiOS */,
+				D4E573CF2FEFE1EF00B91111 /* BatteryProtectiOSTests */,
+				D4E573D92FEFE1EF00B91111 /* BatteryProtectiOSUITests */,
 				D425F9FC2E3C97C20070B3CD /* Products */,
 			);
 			sourceTree = "<group>";
@@ -88,6 +168,9 @@
 				D425F9FB2E3C97C20070B3CD /* BatteryProtect.app */,
 				D425FA092E3C97C20070B3CD /* BatteryProtectTests.xctest */,
 				D425FA132E3C97C20070B3CD /* BatteryProtectUITests.xctest */,
+				D4E573C02FEFE1EF00B91111 /* BatteryProtectiOS.app */,
+				D4E573CC2FEFE1EF00B91111 /* BatteryProtectiOSTests.xctest */,
+				D4E573D62FEFE1EF00B91111 /* BatteryProtectiOSUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -163,6 +246,74 @@
 			productReference = D425FA132E3C97C20070B3CD /* BatteryProtectUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		D4E573BF2FEFE1EF00B91111 /* BatteryProtectiOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D4E573DE2FEFE1EF00B91111 /* Build configuration list for PBXNativeTarget "BatteryProtectiOS" */;
+			buildPhases = (
+				D4E573BC2FEFE1EF00B91111 /* Sources */,
+				D4E573BD2FEFE1EF00B91111 /* Frameworks */,
+				D4E573BE2FEFE1EF00B91111 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				D4E573C12FEFE1EF00B91111 /* BatteryProtectiOS */,
+			);
+			name = BatteryProtectiOS;
+			packageProductDependencies = (
+			);
+			productName = BatteryProtectiOS;
+			productReference = D4E573C02FEFE1EF00B91111 /* BatteryProtectiOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+		D4E573CB2FEFE1EF00B91111 /* BatteryProtectiOSTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D4E573E12FEFE1EF00B91111 /* Build configuration list for PBXNativeTarget "BatteryProtectiOSTests" */;
+			buildPhases = (
+				D4E573C82FEFE1EF00B91111 /* Sources */,
+				D4E573C92FEFE1EF00B91111 /* Frameworks */,
+				D4E573CA2FEFE1EF00B91111 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D4E573CE2FEFE1EF00B91111 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				D4E573CF2FEFE1EF00B91111 /* BatteryProtectiOSTests */,
+			);
+			name = BatteryProtectiOSTests;
+			packageProductDependencies = (
+			);
+			productName = BatteryProtectiOSTests;
+			productReference = D4E573CC2FEFE1EF00B91111 /* BatteryProtectiOSTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		D4E573D52FEFE1EF00B91111 /* BatteryProtectiOSUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D4E573E42FEFE1EF00B91111 /* Build configuration list for PBXNativeTarget "BatteryProtectiOSUITests" */;
+			buildPhases = (
+				D4E573D22FEFE1EF00B91111 /* Sources */,
+				D4E573D32FEFE1EF00B91111 /* Frameworks */,
+				D4E573D42FEFE1EF00B91111 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D4E573D82FEFE1EF00B91111 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				D4E573D92FEFE1EF00B91111 /* BatteryProtectiOSUITests */,
+			);
+			name = BatteryProtectiOSUITests;
+			packageProductDependencies = (
+			);
+			productName = BatteryProtectiOSUITests;
+			productReference = D4E573D62FEFE1EF00B91111 /* BatteryProtectiOSUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -170,7 +321,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1640;
+				LastSwiftUpdateCheck = 2650;
 				LastUpgradeCheck = 1640;
 				TargetAttributes = {
 					D425F9FA2E3C97C20070B3CD = {
@@ -183,6 +334,17 @@
 					D425FA122E3C97C20070B3CD = {
 						CreatedOnToolsVersion = 16.4;
 						TestTargetID = D425F9FA2E3C97C20070B3CD;
+					};
+					D4E573BF2FEFE1EF00B91111 = {
+						CreatedOnToolsVersion = 26.5;
+					};
+					D4E573CB2FEFE1EF00B91111 = {
+						CreatedOnToolsVersion = 26.5;
+						TestTargetID = D4E573BF2FEFE1EF00B91111;
+					};
+					D4E573D52FEFE1EF00B91111 = {
+						CreatedOnToolsVersion = 26.5;
+						TestTargetID = D4E573BF2FEFE1EF00B91111;
 					};
 				};
 			};
@@ -203,6 +365,9 @@
 				D425F9FA2E3C97C20070B3CD /* BatteryProtect */,
 				D425FA082E3C97C20070B3CD /* BatteryProtectTests */,
 				D425FA122E3C97C20070B3CD /* BatteryProtectUITests */,
+				D4E573BF2FEFE1EF00B91111 /* BatteryProtectiOS */,
+				D4E573CB2FEFE1EF00B91111 /* BatteryProtectiOSTests */,
+				D4E573D52FEFE1EF00B91111 /* BatteryProtectiOSUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -223,6 +388,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		D425FA112E3C97C20070B3CD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D4E573BE2FEFE1EF00B91111 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D4E573CA2FEFE1EF00B91111 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D4E573D42FEFE1EF00B91111 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -253,6 +439,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D4E573BC2FEFE1EF00B91111 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D4E573C82FEFE1EF00B91111 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D4E573D22FEFE1EF00B91111 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -265,6 +472,16 @@
 			isa = PBXTargetDependency;
 			target = D425F9FA2E3C97C20070B3CD /* BatteryProtect */;
 			targetProxy = D425FA142E3C97C20070B3CD /* PBXContainerItemProxy */;
+		};
+		D4E573CE2FEFE1EF00B91111 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D4E573BF2FEFE1EF00B91111 /* BatteryProtectiOS */;
+			targetProxy = D4E573CD2FEFE1EF00B91111 /* PBXContainerItemProxy */;
+		};
+		D4E573D82FEFE1EF00B91111 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D4E573BF2FEFE1EF00B91111 /* BatteryProtectiOS */;
+			targetProxy = D4E573D72FEFE1EF00B91111 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -408,7 +625,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.iamshiva.BatteryProtect;
+				PRODUCT_BUNDLE_IDENTIFIER = com.iamshiva.BatteryProtectMonitor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -435,7 +652,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.iamshiva.BatteryProtect;
+				PRODUCT_BUNDLE_IDENTIFIER = com.iamshiva.BatteryProtectMonitor;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -511,6 +728,173 @@
 			};
 			name = Release;
 		};
+		D4E573DF2FEFE1EF00B91111 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZG9B7X8HYF;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BatteryProtectiOS/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "\"\"";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Uses local network to sync battery alerts with laptop.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.iamshiva.BatteryProtectiOS;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		D4E573E02FEFE1EF00B91111 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZG9B7X8HYF;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BatteryProtectiOS/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "\"\"";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Uses local network to sync battery alerts with laptop.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.iamshiva.BatteryProtectiOS;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		D4E573E22FEFE1EF00B91111 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZG9B7X8HYF;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.iamshiva.BatteryProtectiOSTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BatteryProtectiOS.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BatteryProtectiOS";
+			};
+			name = Debug;
+		};
+		D4E573E32FEFE1EF00B91111 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZG9B7X8HYF;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.iamshiva.BatteryProtectiOSTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BatteryProtectiOS.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/BatteryProtectiOS";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		D4E573E52FEFE1EF00B91111 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZG9B7X8HYF;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.iamshiva.BatteryProtectiOSUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = BatteryProtectiOS;
+			};
+			name = Debug;
+		};
+		D4E573E62FEFE1EF00B91111 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZG9B7X8HYF;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.iamshiva.BatteryProtectiOSUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = BatteryProtectiOS;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -546,6 +930,33 @@
 			buildConfigurations = (
 				D425FA242E3C97C20070B3CD /* Debug */,
 				D425FA252E3C97C20070B3CD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D4E573DE2FEFE1EF00B91111 /* Build configuration list for PBXNativeTarget "BatteryProtectiOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D4E573DF2FEFE1EF00B91111 /* Debug */,
+				D4E573E02FEFE1EF00B91111 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D4E573E12FEFE1EF00B91111 /* Build configuration list for PBXNativeTarget "BatteryProtectiOSTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D4E573E22FEFE1EF00B91111 /* Debug */,
+				D4E573E32FEFE1EF00B91111 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D4E573E42FEFE1EF00B91111 /* Build configuration list for PBXNativeTarget "BatteryProtectiOSUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D4E573E52FEFE1EF00B91111 /* Debug */,
+				D4E573E62FEFE1EF00B91111 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

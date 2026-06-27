@@ -23,9 +23,36 @@ class CloudKitReceiverService: ObservableObject {
         // Specifying the identifier explicitly prevents CKContainer.default() from crashing
         // when the default container cannot be resolved due to missing entitlements.
         if _container == nil {
+            guard isICloudEntitlementPresent() else {
+                print("CloudKitReceiverService: iCloud Entitlement is missing. CloudKit is disabled to prevent crash.")
+                return nil
+            }
             _container = CKContainer(identifier: "iCloud.com.batteryprotect")
         }
         return _container
+    }
+    
+    private func isICloudEntitlementPresent() -> Bool {
+        #if targetEnvironment(simulator)
+        return true
+        #else
+        guard let profilePath = Bundle.main.path(forResource: "embedded", ofType: "mobileprovision") else {
+            // No provisioning profile means it is likely an App Store release build
+            return true
+        }
+        
+        do {
+            let data = try Data(contentsOf: URL(fileURLWithPath: profilePath))
+            if let plistString = String(data: data, encoding: .ascii) {
+                return plistString.contains("com.apple.developer.icloud-services") ||
+                       plistString.contains("iCloud.com.batteryprotect")
+            }
+        } catch {
+            print("CloudKitReceiverService: Error scanning provisioning profile: \(error)")
+        }
+        
+        return false
+        #endif
     }
     
     private var privateDatabase: CKDatabase? {

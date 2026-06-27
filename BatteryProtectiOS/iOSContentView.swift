@@ -11,9 +11,7 @@ import SwiftUI
 struct iOSContentView: View {
     @StateObject private var receiverService = CloudKitReceiverService.shared
     @StateObject private var localReceiverService = LocalNetworkReceiverService.shared
-    
-    // Local iPhone battery info
-    @State private var localBatteryInfo: BatteryInfo?
+    @StateObject private var batteryService = iOSBatteryService.shared
     @State private var activeDevice: ActiveDeviceTab = .macbook
     @State private var isAnimating = false
     
@@ -116,7 +114,6 @@ struct iOSContentView: View {
         }
         .onAppear {
             isAnimating = true
-            startLocalBatteryMonitoring()
             
             // Read local settings if saved, or set defaults
             lowThreshold = UserDefaults.standard.double(forKey: "lowBatteryThreshold")
@@ -215,51 +212,58 @@ struct iOSContentView: View {
     // MARK: - iPhone View Section
     private var iphoneSection: some View {
         VStack(spacing: 24) {
-            if let localInfo = localBatteryInfo {
-                CircularBatteryGauge(info: localInfo)
-                    .transition(.scale.combined(with: .opacity))
-                
-                // iPhone Specs Grid
-                VStack(spacing: 12) {
-                    HStack(spacing: 12) {
-                        DetailGridCard(
-                            title: "Power Source",
-                            value: localInfo.powerSource,
-                            iconName: localInfo.isPluggedIn ? "powerplug.fill" : "battery.100",
-                            iconColor: localInfo.isPluggedIn ? .green : .secondary
-                        )
-                        
-                        DetailGridCard(
-                            title: "Charging Status",
-                            value: localInfo.chargingStatus,
-                            iconName: localInfo.isCharging ? "bolt.fill" : "arrow.down.forward.and.arrow.up.backward",
-                            iconColor: localInfo.isCharging ? .green : .secondary
-                        )
-                    }
+            let localInfo = BatteryInfo(
+                level: batteryService.batteryLevel,
+                powerSource: batteryService.powerSource,
+                chargingStatus: batteryService.chargingStatus,
+                health: "Excellent",
+                healthPercentage: 99,
+                lastUpdateTime: Date(),
+                systemPercentage: batteryService.batteryPercentage,
+                cycleCount: nil,
+                timeToEmptyMinutes: nil,
+                timeToFullChargeMinutes: nil
+            )
+            
+            CircularBatteryGauge(info: localInfo)
+                .transition(.scale.combined(with: .opacity))
+            
+            // iPhone Specs Grid
+            VStack(spacing: 12) {
+                HStack(spacing: 12) {
+                    DetailGridCard(
+                        title: "Power Source",
+                        value: localInfo.powerSource,
+                        iconName: localInfo.isPluggedIn ? "powerplug.fill" : "battery.100",
+                        iconColor: localInfo.isPluggedIn ? .green : .secondary
+                    )
                     
-                    HStack(spacing: 12) {
-                        DetailGridCard(
-                            title: "Device Name",
-                            value: UIDevice.current.name,
-                            iconName: "iphone",
-                            iconColor: .blue
-                        )
-                        
-                        DetailGridCard(
-                            title: "Battery Type",
-                            value: "Internal Li-Ion",
-                            iconName: "info.circle.fill",
-                            iconColor: .orange
-                        )
-                    }
+                    DetailGridCard(
+                        title: "Charging Status",
+                        value: localInfo.chargingStatus,
+                        iconName: localInfo.isCharging ? "bolt.fill" : "arrow.down.forward.and.arrow.up.backward",
+                        iconColor: localInfo.isCharging ? .green : .secondary
+                    )
                 }
-                .padding(.horizontal, 20)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-            } else {
-                Text("Loading local battery info...")
-                    .foregroundColor(.secondary)
-                    .frame(height: 380)
+                
+                HStack(spacing: 12) {
+                    DetailGridCard(
+                        title: "Device Name",
+                        value: UIDevice.current.name,
+                        iconName: "iphone",
+                        iconColor: .blue
+                    )
+                    
+                    DetailGridCard(
+                        title: "Battery Type",
+                        value: "Internal Li-Ion",
+                        iconName: "info.circle.fill",
+                        iconColor: .orange
+                    )
+                }
             }
+            .padding(.horizontal, 20)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }
     
@@ -394,56 +398,10 @@ struct iOSContentView: View {
     private var glowColor: Color {
         if activeDevice == .macbook, let macInfo = localReceiverService.macBatteryInfo {
             return macInfo.isCharging ? .green : (macInfo.level < 0.20 ? .red : .orange)
-        } else if activeDevice == .iphone, let localInfo = localBatteryInfo {
-            return localInfo.isCharging ? .green : (localInfo.level < 0.20 ? .red : .orange)
+        } else if activeDevice == .iphone {
+            return batteryService.isCharging ? .green : (batteryService.batteryLevel < 0.20 ? .red : .orange)
         }
         return .orange
-    }
-    
-    private func startLocalBatteryMonitoring() {
-        UIDevice.current.isBatteryMonitoringEnabled = true
-        updateLocalBatteryInfo()
-        
-        NotificationCenter.default.addObserver(forName: UIDevice.batteryLevelDidChangeNotification, object: nil, queue: .main) { _ in
-            self.updateLocalBatteryInfo()
-        }
-        NotificationCenter.default.addObserver(forName: UIDevice.batteryStateDidChangeNotification, object: nil, queue: .main) { _ in
-            self.updateLocalBatteryInfo()
-        }
-    }
-    
-    private func updateLocalBatteryInfo() {
-        let level = UIDevice.current.batteryLevel
-        let state = UIDevice.current.batteryState
-        
-        let chargingStatus: String
-        switch state {
-        case .charging:
-            chargingStatus = "Charging"
-        case .full:
-            chargingStatus = "Charged"
-        case .unplugged:
-            chargingStatus = "Discharging"
-        case .unknown:
-            chargingStatus = "Unknown"
-        @unknown default:
-            chargingStatus = "Unknown"
-        }
-        
-        let powerSource = (state == .charging || state == .full) ? "Power Adapter" : "Battery"
-        
-        self.localBatteryInfo = BatteryInfo(
-            level: level >= 0 ? level : 1.0,
-            powerSource: powerSource,
-            chargingStatus: chargingStatus,
-            health: "Excellent",
-            healthPercentage: 99,
-            lastUpdateTime: Date(),
-            systemPercentage: level >= 0 ? Int((level * 100).rounded()) : 100,
-            cycleCount: nil,
-            timeToEmptyMinutes: nil,
-            timeToFullChargeMinutes: nil
-        )
     }
     
     private func formatTime(emptyMinutes: Int?, fullMinutes: Int?, isCharging: Bool) -> String {

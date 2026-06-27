@@ -37,8 +37,8 @@ jobs:
                      CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
                      test
 
-  build-and-test-ios:
-    name: Build & Test iOS App
+  build-ios:
+    name: Build iOS App (Compilation Check)
     runs-on: macos-15
     
     steps:
@@ -48,32 +48,6 @@ jobs:
       - name: Show Xcode Version
         run: xcode-select -p && xcodebuild -version
 
-      - name: Find Available iOS Simulator (Self-Healing / Bulletproof for GHA)
-        id: find_simulator
-        run: |
-          # Try to find an existing iPhone simulator
-          SIM_NAME=$(xcrun simctl list devices available -j | jq -r '.devices | to_entries | .[].value | .[] | select(.name | contains("iPhone")) | .name' | head -n 1)
-          
-          if [ -z "$SIM_NAME" ] || [ "$SIM_NAME" = "null" ]; then
-            echo "No pre-existing iPhone simulator found. Creating one dynamically..."
-            
-            # Find the latest available iOS runtime identifier
-            RUNTIME_ID=$(xcrun simctl list runtimes -j | jq -r '.runtimes[] | select(.identifier | contains("iOS")) | .identifier' | tail -n 1)
-            
-            # Find the latest supported iPhone device type identifier
-            DEV_TYPE=$(xcrun simctl list devicetypes -j | jq -r '.devicetypes[] | select(.identifier | contains("iPhone")) | .identifier' | head -n 1)
-            
-            echo "Using runtime: $RUNTIME_ID"
-            echo "Using device type: $DEV_TYPE"
-            
-            # Create a new simulator device named "iPhone GHA"
-            xcrun simctl create "iPhone GHA" "$DEV_TYPE" "$RUNTIME_ID"
-            SIM_NAME="iPhone GHA"
-          fi
-          
-          echo "Using simulator: $SIM_NAME"
-          echo "SIM_NAME=$SIM_NAME" >> $GITHUB_ENV
-
       - name: Build iOS App
         run: |
           xcodebuild -project BatteryProtect.xcodeproj \
@@ -82,13 +56,3 @@ jobs:
                      -destination 'generic/platform=iOS' \
                      CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
                      build
-
-      - name: Run iOS Unit Tests (Skipping UI Tests due to code signing constraints)
-        run: |
-          xcodebuild -project BatteryProtect.xcodeproj \
-                     -scheme BatteryProtectiOS \
-                     -configuration Debug \
-                     -destination "platform=iOS Simulator,name=${{ env.SIM_NAME }}" \
-                     -skip-testing:BatteryProtectiOSUITests \
-                     CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
-                     test

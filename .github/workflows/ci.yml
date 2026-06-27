@@ -9,7 +9,7 @@ on:
 jobs:
   build-and-test-macos:
     name: Build & Test macOS App
-    runs-on: macos-14
+    runs-on: macos-15
     
     steps:
       - name: Checkout Code
@@ -36,7 +36,7 @@ jobs:
 
   build-and-test-ios:
     name: Build & Test iOS App
-    runs-on: macos-14
+    runs-on: macos-15
     
     steps:
       - name: Checkout Code

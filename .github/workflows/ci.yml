@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main", "feature/*", "github-workflow", "small-fixes" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test-macos:
+    name: Build & Test macOS App
+    runs-on: macos-14
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Show Xcode Version
+        run: xcode-select -p && xcodebuild -version
+
+      - name: Build macOS App
+        run: |
+          xcodebuild -project BatteryProtect.xcodeproj \
+                     -scheme BatteryProtect \
+                     -configuration Debug \
+                     -destination 'platform=macOS' \
+                     build
+
+      - name: Run macOS Unit Tests
+        run: |
+          xcodebuild -project BatteryProtect.xcodeproj \
+                     -scheme BatteryProtect \
+                     -configuration Debug \
+                     -destination 'platform=macOS' \
+                     test
+
+  build-and-test-ios:
+    name: Build & Test iOS App
+    runs-on: macos-14
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Show Xcode Version
+        run: xcode-select -p && xcodebuild -version
+
+      - name: Build iOS App
+        run: |
+          xcodebuild -project BatteryProtect.xcodeproj \
+                     -scheme BatteryProtectiOS \
+                     -configuration Debug \
+                     -destination 'generic/platform=iOS' \
+                     build
+
+      - name: Run iOS Unit Tests
+        run: |
+          xcodebuild -project BatteryProtect.xcodeproj \
+                     -scheme BatteryProtectiOS \
+                     -configuration Debug \
+                     -destination 'platform=iOS Simulator,name=iPhone 15' \
+                     test

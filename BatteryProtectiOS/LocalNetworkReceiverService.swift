@@ -253,15 +253,15 @@ extension BatteryInfo {
     
     var batteryIcon: String {
         if level <= 0.05 {
-            return "battery.0.circle.fill"
+            return "battery.0percent"
         } else if level <= 0.25 {
-            return "battery.25.circle.fill"
+            return "battery.25percent"
         } else if level <= 0.50 {
-            return "battery.50.circle.fill"
+            return "battery.50percent"
         } else if level <= 0.75 {
-            return "battery.75.circle.fill"
+            return "battery.75percent"
         } else {
-            return "battery.100.circle.fill"
+            return "battery.100percent"
         }
     }
     

@@ -10,26 +10,10 @@ import Foundation
 import UIKit
 import Combine
 
-// MARK: - IOKit Dynamic Bindings for iOS
-// IOKit is not publicly linked on iOS, but the framework exists at runtime.
-// We dynamically load it to access the exact battery capacity readings.
-private let kIOKitFrameworkPath = "/System/Library/Frameworks/IOKit.framework/IOKit"
-
-private typealias IOServiceGetMatchingServiceFunc = @convention(c) (UInt32, CFDictionary) -> UInt32
-private typealias IOServiceMatchingFunc = @convention(c) (UnsafePointer<CChar>) -> CFMutableDictionary?
-private typealias IORegistryEntryCreateCFPropertyFunc = @convention(c) (UInt32, CFString, CFAllocator?, UInt32) -> Unmanaged<CFTypeRef>?
-private typealias IOObjectReleaseFunc = @convention(c) (UInt32) -> kern_return_t
-
-private func loadIOKitSymbol<T>(_ name: String) -> T? {
-    guard let handle = dlopen(kIOKitFrameworkPath, RTLD_LAZY) else { return nil }
-    guard let sym = dlsym(handle, name) else { return nil }
-    return unsafeBitCast(sym, to: T.self)
-}
-
-/// Reads the precise battery percentage on iOS using IOKit's IORegistryEntry.
-/// UIDevice.current.batteryLevel rounds to 5% increments on physical devices,
-/// which does not match the status bar reading. This service reads the actual
-/// system-reported current capacity via IOKit to compute the exact percentage.
+/// Reads the precise battery percentage on iOS by dynamically loading IOKit.
+/// UIDevice.current.batteryLevel rounds to 5% increments on many physical devices.
+/// This service reads CurrentCapacity/MaxCapacity from the IOKit registry
+/// (the same data source the status bar uses) for 1% accuracy.
 class iOSBatteryService: ObservableObject {
     static let shared = iOSBatteryService()
     
@@ -40,21 +24,18 @@ class iOSBatteryService: ObservableObject {
     @Published var isCharging: Bool = false
     
     private var timer: Timer?
+    private var ioKitHandle: UnsafeMutableRawPointer?
+    private var ioKitAvailable: Bool = false
     
-    // Dynamically loaded IOKit functions
-    private let ioServiceGetMatchingService: IOServiceGetMatchingServiceFunc?
-    private let ioServiceMatching: IOServiceMatchingFunc?
-    private let ioRegistryEntryCreateCFProperty: IORegistryEntryCreateCFPropertyFunc?
-    private let ioObjectRelease: IOObjectReleaseFunc?
+    // Dynamically resolved IOKit function pointers
+    private var _IOServiceGetMatchingService: (@convention(c) (UInt32, CFDictionary) -> UInt32)?
+    private var _IOServiceMatching: (@convention(c) (UnsafePointer<CChar>) -> CFMutableDictionary?)?
+    private var _IORegistryEntryCreateCFProperty: (@convention(c) (UInt32, CFString, CFAllocator?, UInt32) -> Unmanaged<CFTypeRef>?)?
+    private var _IOObjectRelease: (@convention(c) (UInt32) -> kern_return_t)?
     
     private init() {
-        // Load IOKit symbols dynamically
-        ioServiceGetMatchingService = loadIOKitSymbol("IOServiceGetMatchingService")
-        ioServiceMatching = loadIOKitSymbol("IOServiceMatching")
-        ioRegistryEntryCreateCFProperty = loadIOKitSymbol("IORegistryEntryCreateCFProperty")
-        ioObjectRelease = loadIOKitSymbol("IOObjectRelease")
-        
         UIDevice.current.isBatteryMonitoringEnabled = true
+        loadIOKit()
         refresh()
         startPolling()
     }
@@ -63,9 +44,55 @@ class iOSBatteryService: ObservableObject {
         timer?.invalidate()
     }
     
-    /// Polls battery info every 15 seconds for smooth, real-time updates.
+    // MARK: - IOKit Dynamic Loading
+    
+    private func loadIOKit() {
+        // Try multiple paths — the framework location can vary
+        let paths = [
+            "/System/Library/Frameworks/IOKit.framework/Versions/A/IOKit",
+            "/System/Library/Frameworks/IOKit.framework/IOKit"
+        ]
+        
+        for path in paths {
+            if let handle = dlopen(path, RTLD_LAZY) {
+                ioKitHandle = handle
+                break
+            }
+        }
+        
+        guard let handle = ioKitHandle else {
+            print("iOSBatteryService: Could not dlopen IOKit. Will use UIDevice fallback.")
+            ioKitAvailable = false
+            return
+        }
+        
+        // Resolve symbols
+        if let sym = dlsym(handle, "IOServiceGetMatchingService") {
+            _IOServiceGetMatchingService = unsafeBitCast(sym, to: (@convention(c) (UInt32, CFDictionary) -> UInt32).self)
+        }
+        if let sym = dlsym(handle, "IOServiceMatching") {
+            _IOServiceMatching = unsafeBitCast(sym, to: (@convention(c) (UnsafePointer<CChar>) -> CFMutableDictionary?).self)
+        }
+        if let sym = dlsym(handle, "IORegistryEntryCreateCFProperty") {
+            _IORegistryEntryCreateCFProperty = unsafeBitCast(sym, to: (@convention(c) (UInt32, CFString, CFAllocator?, UInt32) -> Unmanaged<CFTypeRef>?).self)
+        }
+        if let sym = dlsym(handle, "IOObjectRelease") {
+            _IOObjectRelease = unsafeBitCast(sym, to: (@convention(c) (UInt32) -> kern_return_t).self)
+        }
+        
+        ioKitAvailable = (_IOServiceGetMatchingService != nil &&
+                          _IOServiceMatching != nil &&
+                          _IORegistryEntryCreateCFProperty != nil &&
+                          _IOObjectRelease != nil)
+        
+        print("iOSBatteryService: IOKit loaded = \(ioKitAvailable)")
+    }
+    
+    // MARK: - Polling
+    
     private func startPolling() {
-        timer = Timer.scheduledTimer(withTimeInterval: 15.0, repeats: true) { [weak self] _ in
+        // Poll every 5 seconds for near-realtime accuracy
+        timer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
             self?.refresh()
         }
         
@@ -77,12 +104,11 @@ class iOSBatteryService: ObservableObject {
         }
     }
     
-    /// Reads the exact battery percentage from the system.
-    /// First tries IOKit registry (exact), falls back to UIDevice (5% granularity).
+    // MARK: - Refresh
+    
     func refresh() {
         let state = UIDevice.current.batteryState
         
-        // Charging status from UIDevice (this is always accurate)
         switch state {
         case .charging:
             chargingStatus = "Charging"
@@ -106,12 +132,12 @@ class iOSBatteryService: ObservableObject {
             powerSource = "Battery"
         }
         
-        // Try to get exact percentage from IOKit registry entry
-        if let exactPercent = readExactBatteryPercentage() {
+        // Try IOKit first for exact reading, fall back to UIDevice
+        if ioKitAvailable, let exactPercent = readIOKitBatteryPercentage() {
             batteryPercentage = exactPercent
             batteryLevel = Float(exactPercent) / 100.0
         } else {
-            // Fallback to UIDevice
+            // UIDevice fallback — may be 5% increments on some devices
             let rawLevel = UIDevice.current.batteryLevel
             if rawLevel >= 0 {
                 batteryPercentage = Int((rawLevel * 100).rounded())
@@ -120,17 +146,32 @@ class iOSBatteryService: ObservableObject {
         }
     }
     
-    /// Reads exact battery percentage via dynamically loaded IOKit on iOS.
-    /// Returns nil if the IOKit functions are unavailable.
-    private func readExactBatteryPercentage() -> Int? {
-        guard let matching = ioServiceMatching,
-              let getService = ioServiceGetMatchingService,
-              let createProperty = ioRegistryEntryCreateCFProperty,
-              let release = ioObjectRelease else {
+    // MARK: - IOKit Battery Reading
+    
+    /// Tries multiple IOKit service names to read CurrentCapacity / MaxCapacity.
+    private func readIOKitBatteryPercentage() -> Int? {
+        // Try different service names used on various iOS hardware
+        let serviceNames = ["IOPMPowerSource", "AppleSmartBattery"]
+        
+        for serviceName in serviceNames {
+            if let percent = readCapacityFromService(named: serviceName) {
+                return percent
+            }
+        }
+        
+        return nil
+    }
+    
+    /// Reads CurrentCapacity and MaxCapacity from a named IOKit service.
+    private func readCapacityFromService(named serviceName: String) -> Int? {
+        guard let matching = _IOServiceMatching,
+              let getService = _IOServiceGetMatchingService,
+              let createProperty = _IORegistryEntryCreateCFProperty,
+              let release = _IOObjectRelease else {
             return nil
         }
         
-        guard let matchDict = matching("IOPMPowerSource") else {
+        guard let matchDict = matching(serviceName) else {
             return nil
         }
         
@@ -146,17 +187,16 @@ class iOSBatteryService: ObservableObject {
         var maxCapacity: Int?
         
         if let prop = createProperty(service, "CurrentCapacity" as CFString, kCFAllocatorDefault, 0) {
-            let value = prop.takeRetainedValue()
-            currentCapacity = (value as? NSNumber)?.intValue
+            currentCapacity = (prop.takeRetainedValue() as? NSNumber)?.intValue
         }
         
         if let prop = createProperty(service, "MaxCapacity" as CFString, kCFAllocatorDefault, 0) {
-            let value = prop.takeRetainedValue()
-            maxCapacity = (value as? NSNumber)?.intValue
+            maxCapacity = (prop.takeRetainedValue() as? NSNumber)?.intValue
         }
         
-        if let current = currentCapacity, let max = maxCapacity, max > 0 {
-            return min(100, (current * 100) / max)
+        if let current = currentCapacity, let maxCap = maxCapacity, maxCap > 0 {
+            let percent = Int((Double(current) / Double(maxCap) * 100.0).rounded())
+            return Swift.max(0, Swift.min(100, percent))
         }
         
         return nil

@@ -7,5 +7,7 @@
 		<string>_battery-prot._tcp</string>
 		<string>_battery-prot._udp</string>
 	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

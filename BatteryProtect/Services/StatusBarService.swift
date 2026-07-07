@@ -333,7 +333,7 @@ class StatusBarService: NSObject, ObservableObject {
         
         // 4. Draw Charging Lightning Bolt
         if isCharging {
-            let boltSize = h * 0.85
+            let boltSize = h * 1.15
             let boltCx = cx
             let boltCy = bodyCy
             
@@ -355,7 +355,7 @@ class StatusBarService: NSObject, ObservableObject {
             
             // Cutout
             context.setBlendMode(.clear)
-            context.setLineWidth(1.8)
+            context.setLineWidth(2.0)
             context.addPath(path)
             context.strokePath()
             

@@ -271,9 +271,7 @@ class StatusBarService: NSObject, ObservableObject {
     }
     
     private func statusBarImage(for info: BatteryInfo) -> NSImage? {
-        // Return a single, static symbol regardless of battery state
-        let config = NSImage.SymbolConfiguration(pointSize: 20, weight: .regular)
-        if let img = NSImage(systemSymbolName: "battery.100", accessibilityDescription: nil)?.withSymbolConfiguration(config) {
+        if let img = NSImage(named: "AppLogo") {
             img.isTemplate = true
             return img
         }

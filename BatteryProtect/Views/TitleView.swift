@@ -38,8 +38,10 @@ struct TitleView: View {
     
     var body: some View {
         HStack(spacing: 6) {
-            Image(systemName: "bolt.circle.fill")
-                .font(.system(size: 20))
+            Image("AppLogo")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 20, height: 20)
                 .foregroundStyle(powerColor)
                 .scaleEffect(batteryInfo.isCriticalBattery ? pulseScale : (isHovering ? 1.1 : 1.0))
                 .animation(

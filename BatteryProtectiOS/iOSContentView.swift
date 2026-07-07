@@ -39,8 +39,10 @@ struct iOSContentView: View {
                     
                     // Title Header
                     VStack(spacing: 8) {
-                        Image(systemName: "battery.100.bolt")
-                            .font(.system(size: 64))
+                        Image("AppLogo")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 72, height: 72)
                             .foregroundStyle(
                                 LinearGradient(
                                     colors: [.green, .emerald],

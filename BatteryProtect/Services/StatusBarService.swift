@@ -271,11 +271,104 @@ class StatusBarService: NSObject, ObservableObject {
     }
     
     private func statusBarImage(for info: BatteryInfo) -> NSImage? {
-        if let img = NSImage(named: "AppLogo") {
-            img.isTemplate = true
-            return img
+        return drawDynamicBatteryImage(level: Double(info.level), isCharging: info.isPluggedIn)
+    }
+    
+    private func drawDynamicBatteryImage(level: Double, isCharging: Bool) -> NSImage {
+        let size = NSSize(width: 18, height: 18)
+        let image = NSImage(size: size)
+        image.lockFocus()
+        
+        guard let context = NSGraphicsContext.current?.cgContext else {
+            image.unlockFocus()
+            return image
         }
-        return nil
+        
+        context.clear(CGRect(x: 0, y: 0, width: 18, height: 18))
+        
+        let cx: CGFloat = 9.0
+        let cy: CGFloat = 9.0
+        
+        // Battery outline dimensions suitable for 18x18 menu bar slot
+        let w: CGFloat = 15.0
+        let h: CGFloat = 9.0
+        let capW: CGFloat = 2.4
+        let capH: CGFloat = 1.4
+        
+        let bodyCy = cy - capH / 2.0
+        
+        context.setStrokeColor(NSColor.white.cgColor)
+        context.setFillColor(NSColor.white.cgColor)
+        context.setLineWidth(1.1)
+        
+        // 1. Draw outline
+        let bodyRect = CGRect(x: cx - w/2.0, y: bodyCy - h/2.0, width: w, height: h)
+        let bodyPath = CGPath(roundedRect: bodyRect, cornerWidth: 1.2, cornerHeight: 1.2, transform: nil)
+        context.addPath(bodyPath)
+        context.strokePath()
+        
+        // 2. Draw terminal caps
+        let leftCapRect = CGRect(x: cx - w/2.0 + w * 0.08, y: bodyCy + h/2.0, width: capW, height: capH)
+        let leftCapPath = CGPath(roundedRect: leftCapRect, cornerWidth: 0.4, cornerHeight: 0.4, transform: nil)
+        context.addPath(leftCapPath)
+        context.fillPath()
+        
+        let rightCapRect = CGRect(x: cx + w/2.0 - w * 0.08 - capW, y: bodyCy + h/2.0, width: capW, height: capH)
+        let rightCapPath = CGPath(roundedRect: rightCapRect, cornerWidth: 0.4, cornerHeight: 0.4, transform: nil)
+        context.addPath(rightCapPath)
+        context.fillPath()
+        
+        // 3. Draw Battery Fill level
+        let fillInset: CGFloat = 1.5
+        let maxFillWidth = w - (fillInset * 2.0)
+        let fillWidth = maxFillWidth * CGFloat(max(0.0, min(1.0, level)))
+        let fillHeight = h - (fillInset * 2.0)
+        
+        if fillWidth > 0.1 {
+            let fillRect = CGRect(x: cx - w/2.0 + fillInset, y: bodyCy - fillHeight/2.0, width: fillWidth, height: fillHeight)
+            let fillPath = CGPath(roundedRect: fillRect, cornerWidth: 0.6, cornerHeight: 0.6, transform: nil)
+            context.addPath(fillPath)
+            context.fillPath()
+        }
+        
+        // 4. Draw Charging Lightning Bolt
+        if isCharging {
+            let boltSize = h * 0.85
+            let boltCx = cx
+            let boltCy = bodyCy
+            
+            let path = CGMutablePath()
+            let p1 = CGPoint(x: boltCx + boltSize * 0.15, y: boltCy + boltSize * 0.50)
+            let p2 = CGPoint(x: boltCx - boltSize * 0.25, y: boltCy + boltSize * 0.00)
+            let p3 = CGPoint(x: boltCx - boltSize * 0.05, y: boltCy + boltSize * 0.00)
+            let p4 = CGPoint(x: boltCx - boltSize * 0.15, y: boltCy - boltSize * 0.50)
+            let p5 = CGPoint(x: boltCx + boltSize * 0.25, y: boltCy - boltSize * 0.00)
+            let p6 = CGPoint(x: boltCx + boltSize * 0.05, y: boltCy - boltSize * 0.00)
+            
+            path.move(to: p1)
+            path.addLine(to: p2)
+            path.addLine(to: p3)
+            path.addLine(to: p4)
+            path.addLine(to: p5)
+            path.addLine(to: p6)
+            path.closeSubpath()
+            
+            // Cutout
+            context.setBlendMode(.clear)
+            context.setLineWidth(1.8)
+            context.addPath(path)
+            context.strokePath()
+            
+            // Fill
+            context.setBlendMode(.normal)
+            context.setFillColor(NSColor.white.cgColor)
+            context.addPath(path)
+            context.fillPath()
+        }
+        
+        image.unlockFocus()
+        image.isTemplate = true
+        return image
     }
     
     func cleanup() {

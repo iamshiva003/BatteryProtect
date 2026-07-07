@@ -20,6 +20,8 @@ struct PreferencesView: View {
     @AppStorage("enableLocalWiFiSync") private var enableLocalWiFiSync = true
     
     @State private var startAtLoginErrorMessage: String?
+    @State private var hideSystemBattery = false
+    @State private var showSandboxWarning = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -40,6 +42,14 @@ struct PreferencesView: View {
                             .font(.caption)
                             .foregroundStyle(.red)
                     }
+                    
+                    Toggle("Hide macOS system battery icon", isOn: $hideSystemBattery)
+                        .onChange(of: hideSystemBattery) { _, newValue in
+                            let success = SystemBatteryManager.setSystemBatteryVisible(!newValue)
+                            if !success {
+                                showSandboxWarning = true
+                            }
+                        }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             } label: {
@@ -119,6 +129,17 @@ struct PreferencesView: View {
         .onAppear {
             // Sync the toggle to actual system status (source of truth)
             startAtLogin = StartAtLoginManager.isEnabled()
+            hideSystemBattery = !SystemBatteryManager.isSystemBatteryVisible
+        }
+        .alert("System Settings Restricted", isPresented: $showSandboxWarning) {
+            Button("Copy Terminal Command") {
+                copyCommandsToClipboard(hide: hideSystemBattery)
+            }
+            Button("Cancel", role: .cancel) {
+                hideSystemBattery = !hideSystemBattery
+            }
+        } message: {
+            Text("App Sandbox restrictions prevent modifying system preferences directly.\n\nYou can copy and run the defaults command in Terminal to update the status bar.")
         }
     }
 
@@ -150,6 +171,64 @@ struct PreferencesView: View {
             startAtLogin = StartAtLoginManager.isEnabled()
             startAtLoginErrorMessage = error.localizedDescription
             print("Start at Login error: \(error)")
+        }
+    }
+
+    private func copyCommandsToClipboard(hide: Bool) {
+        let command = hide 
+            ? "defaults write com.apple.controlcenter \"NSStatusItem Visible Battery\" -bool false && killall ControlCenter"
+            : "defaults write com.apple.controlcenter \"NSStatusItem Visible Battery\" -bool true && killall ControlCenter"
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(command, forType: .string)
+    }
+}
+
+struct SystemBatteryManager {
+    static var isSystemBatteryVisible: Bool {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/defaults")
+        process.arguments = ["read", "com.apple.controlcenter", "NSStatusItem Visible Battery"]
+        
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        
+        do {
+            try process.run()
+            process.waitUntilExit()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            if let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) {
+                return output == "1" || output.lowercased() == "true"
+            }
+        } catch {
+            print("Failed to read system battery visibility: \(error)")
+        }
+        return true // default fallback
+    }
+    
+    @discardableResult
+    static func setSystemBatteryVisible(_ visible: Bool) -> Bool {
+        let defaultsProcess = Process()
+        defaultsProcess.executableURL = URL(fileURLWithPath: "/usr/bin/defaults")
+        defaultsProcess.arguments = ["write", "com.apple.controlcenter", "NSStatusItem Visible Battery", "-bool", visible ? "true" : "false"]
+        
+        do {
+            try defaultsProcess.run()
+            defaultsProcess.waitUntilExit()
+            if defaultsProcess.terminationStatus != 0 {
+                return false
+            }
+            
+            // Reload ControlCenter
+            let killProcess = Process()
+            killProcess.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
+            killProcess.arguments = ["ControlCenter"]
+            try killProcess.run()
+            killProcess.waitUntilExit()
+            return killProcess.terminationStatus == 0
+        } catch {
+            print("Failed to set system battery visibility or reload ControlCenter: \(error)")
+            return false
         }
     }
 }
